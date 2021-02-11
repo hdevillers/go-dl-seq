@@ -1,13 +1,12 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/hdevillers/go-dl-seq/seq"
+	"github.com/hdevillers/go-dl-seq/seqio/fasta"
 )
 
 func check(e error) {
@@ -37,15 +36,8 @@ func main() {
 	s := seq.NewSeq(id, sequence)
 	fmt.Printf("Sequence length is %d.", s.Length())
 
-	r := bufio.NewReader(f)
-	line, err := r.ReadBytes('\n')
-	if err == io.EOF {
-		panic("Empty file!")
-	}
-	if line[0] == '>' {
-		fmt.Println("Good fasta header.")
-		fmt.Println(string(line[1:]))
-	}
+	fio := fasta.NewReader(f)
+	fio.Read()
 
 	fmt.Println("Sequence length: ", *seqLen, " nuc.")
 }
