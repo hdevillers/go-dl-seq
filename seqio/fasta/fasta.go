@@ -20,6 +20,11 @@ type ReaderInterface interface {
 	IsEOF() bool
 }
 
+// Define fasta writer interface
+type WriterInterface interface {
+	Write(seq.Seq) error
+}
+
 // Fasta sequence reader struct
 type Reader struct {
 	scan     *bufio.Scanner
