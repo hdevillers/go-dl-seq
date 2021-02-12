@@ -14,12 +14,18 @@ const (
 	LineLength = 60
 )
 
+// Define fasta reader interface
+type ReaderInterface interface {
+	Read() (seq.Seq, error)
+	IsEOF() bool
+}
+
 // Fasta sequence reader struct
 type Reader struct {
 	scan     *bufio.Scanner
 	currId   string
 	currDesc string
-	IsEOF    bool
+	eof      bool
 }
 
 // Fasta sequence write struct
@@ -34,7 +40,7 @@ func NewReader(f io.Reader) *Reader {
 		scan:     bufio.NewScanner(f),
 		currId:   "",
 		currDesc: "",
-		IsEOF:    false,
+		eof:      false,
 	}
 }
 
@@ -52,6 +58,11 @@ func parseIdLine(idl string) (string, string) {
 		return data[0], data[1]
 	}
 	return data[0], ""
+}
+
+// Return true if reachs the end-of-file
+func (r *Reader) IsEOF() bool {
+	return r.eof
 }
 
 // Read a single fasta entry
@@ -104,7 +115,7 @@ func (r *Reader) Read() (seq.Seq, error) {
 		}
 	}
 	// Scanning is finicher
-	r.IsEOF = true
+	r.eof = true
 
 	// Set last sequence ID and Description
 	newSeq.SetId(r.currId)
