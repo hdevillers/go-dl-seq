@@ -1,28 +1,32 @@
 package seq
 
 type Seq struct {
-	id       string
-	desc     string
-	sequence []byte
+	Id       string
+	Desc     string
+	Sequence []byte
 }
 
-func NewSeq(id string, sequence []byte) *Seq {
-	p := Seq{id: id, sequence: sequence}
+func NewSeq(id string) *Seq {
+	p := Seq{Id: id}
 	return &p
 }
 
 func (s *Seq) SetId(id string) {
-	s.id = id
+	s.Id = id
 }
 
 func (s *Seq) SetDesc(desc string) {
-	s.desc = desc
+	s.Desc = desc
 }
 
 func (s *Seq) SetSequence(sequence []byte) {
-	s.sequence = sequence
+	s.Sequence = sequence
+}
+
+func (s *Seq) AppendSequence(sequence []byte) {
+	s.Sequence = append(s.Sequence, sequence...)
 }
 
 func (s *Seq) Length() int {
-	return len(s.sequence)
+	return len(s.Sequence)
 }

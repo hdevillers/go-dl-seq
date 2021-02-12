@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	IdPreffix = '>'
+	IdPreffix  = '>'
+	LineLength = 60
 )
 
 // Fasta sequence reader struct
@@ -18,13 +19,30 @@ type Reader struct {
 	scan     *bufio.Scanner
 	currId   string
 	currDesc string
+	IsEOF    bool
+}
+
+// Fasta sequence write struct
+type Writer struct {
+	write *bufio.Writer
+	Count int
 }
 
 // Generate a new reader
 func NewReader(f io.Reader) *Reader {
 	return &Reader{
-		scan:   bufio.NewScanner(f),
-		currId: "",
+		scan:     bufio.NewScanner(f),
+		currId:   "",
+		currDesc: "",
+		IsEOF:    false,
+	}
+}
+
+// Generate a new writer
+func NewWriter(f io.Writer) *Writer {
+	return &Writer{
+		write: bufio.NewWriter(f),
+		Count: 0,
 	}
 }
 
@@ -39,7 +57,6 @@ func parseIdLine(idl string) (string, string) {
 // Read a single fasta entry
 func (r *Reader) Read() (seq.Seq, error) {
 	// Initialize the new sequence
-	var currSeq []byte
 	var newSeq seq.Seq
 
 	for r.scan.Scan() {
@@ -51,33 +68,97 @@ func (r *Reader) Read() (seq.Seq, error) {
 
 		// Get the scanned line
 		line := r.scan.Bytes()
-		//fmt.Println(string(line))
 
-		
 		if line[0] == IdPreffix {
 			// This is an ID line
 			if r.currId != "" {
 				// Return the current sequence if not nil
-				if len(currSeq) == 0 {
+				if newSeq.Length() == 0 {
 					// Empty sequence or bad format
-					return newSeq, errors.New("[FASTA]: Empty sequence or bad format.")
+					return newSeq, errors.New("[FASTA READER]: Empty sequence or bad format.")
 				}
 
 				// Set sequence data
 				newSeq.SetId(r.currId)
 				newSeq.SetDesc(r.currDesc)
-				newSeq.SetSequence(currSeq)
 
 				// Save the new ID
-				r.currId, r.currDesc = parseIdLine( string(line) )
+				r.currId, r.currDesc = parseIdLine(string(line[1:]))
 
-
+				// Return the completed sequence
 				return newSeq, nil
+			} else {
+				// Save the new ID
+				r.currId, r.currDesc = parseIdLine(string(line[1:]))
+
+				// Thow an error if the sequence is not nil
+				if newSeq.Length() > 0 {
+					return newSeq, errors.New("[FASTA READER]: Sequence without ID or possible bad format.")
+				}
+
+				// Continue
 			}
-
 		} else {
-
+			//TODO: Control input character
+			newSeq.AppendSequence(line)
 		}
 	}
+	// Scanning is finicher
+	r.IsEOF = true
+
+	// Set last sequence ID and Description
+	newSeq.SetId(r.currId)
+	newSeq.SetDesc(r.currDesc)
+
+	// Check if the last sequence is empty
+	if newSeq.Length() == 0 {
+		return newSeq, errors.New("[FASTA READER]: The last sequence is empty.")
+	}
+
+	// Return with no error
 	return newSeq, nil
+}
+
+func (w *Writer) Write(s seq.Seq) error {
+	//Add the sequence ID
+	if s.Id == "" {
+		return errors.New("[FASTA WRITER]: Missing sequence ID.")
+	}
+	_, err := w.write.WriteString(">" + s.Id)
+	if err != nil {
+		return err
+	}
+
+	// Add the description
+	if s.Desc != "" {
+		_, err = w.write.WriteString(" " + s.Desc)
+		if err != nil {
+			return err
+		}
+	}
+	err = w.write.WriteByte('\n')
+	if err != nil {
+		return err
+	}
+
+	// Add the sequence
+	// NOTE: We assume that if no error occured above, io.writer is OK
+	n := 0
+	for i := 0; i < s.Length(); i++ {
+		w.write.WriteByte(s.Sequence[i])
+		n++
+		if n == LineLength {
+			w.write.WriteByte('\n')
+			n = 0
+		}
+	}
+	if n != 0 {
+		w.write.WriteByte('\n')
+	}
+
+	// Flush written bytes
+	err = w.write.Flush()
+	w.Count++
+
+	return err
 }
