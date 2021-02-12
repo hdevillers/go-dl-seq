@@ -3,9 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
 
-	"github.com/hdevillers/go-dl-seq/seqio/fasta"
+	"github.com/hdevillers/go-dl-seq/seqio"
 )
 
 func check(e error) {
@@ -17,23 +16,21 @@ func check(e error) {
 func main() {
 	// Retrieve argument values
 	input := flag.String("input", "", "Input fasta file")
+	format := flag.String("format", "fasta", "Input format.")
 	flag.Parse()
 
 	if *input == "" {
 		panic("You must provide an input fasta file.")
 	}
 
-	// Open fasta file
-	f, err := os.Open(*input)
-	check(err)
-	defer f.Close()
+	// Open sequence file
+	seqIn := seqio.NewReader(*input, *format)
+	seqIn.CheckPanic()
+	defer seqIn.Close()
 
-	// Fasta Reader
-	fio := fasta.NewReader(f)
-
-	for !fio.IsEOF {
-		s, err := fio.Read()
-		check(err)
+	for seqIn.Next() {
+		seqIn.CheckPanic()
+		s := seqIn.Seq()
 
 		fmt.Printf("%s\t%d\n", s.Id, s.Length())
 	}
