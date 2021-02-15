@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/hdevillers/go-dl-seq/pattern"
 	"github.com/hdevillers/go-dl-seq/seqio"
 	"github.com/hdevillers/go-dl-seq/seq"
 )
@@ -24,6 +25,7 @@ func main() {
 	count  := flag.Int("n", 1, "Number of required sequence(s).")
 	base   := flag.String("base", "RandSeq_", "Sequence ID base name.")
 	seed   := flag.Int64("seed", 0, "Random seed initializer.")
+	pa     := flag.String("pattern", "", "Set specific pattern(s).")
 	flag.Parse()
 
 	if *output == "" {
@@ -51,8 +53,14 @@ func main() {
 	seqOut.CheckPanic()
 	defer seqOut.Close()
 
-	// Very simple solution
-	alpha := []byte{'A', 'C', 'G', 'T'}
+	// Create a new pattern generator
+	patt := pattern.NewNucl(*length)
+
+	// Edit pattern if required
+	if *pa != "" {
+		err := patt.EditNuclPattern(*pa)
+		check(err)
+	}
 
 	// Generate the required sequences
 	for i:=0 ; i<*count ; i++ {
@@ -63,11 +71,7 @@ func main() {
 		seq := seq.NewSeq(id)
 
 		// Add a sequence
-		str := make([]byte, *length)
-		for j:=0 ; j<*length ; j++ {
-			l := random.Intn(4)
-			str[j] = alpha[l]
-		}
+		str := patt.RandomNucl(random)
 		seq.SetSequence(str)
 
 		// Write it
