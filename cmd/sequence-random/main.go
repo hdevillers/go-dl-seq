@@ -26,10 +26,11 @@ func main() {
 	base   := flag.String("base", "RandSeq_", "Sequence ID base name.")
 	seed   := flag.Int64("seed", 0, "Random seed initializer.")
 	pa     := flag.String("pattern", "", "Set specific pattern(s).")
+	desc   := flag.String("desc", "", "Set a description for each sequence.")
 	flag.Parse()
 
 	if *output == "" {
-		panic("You must provide an input fasta file.")
+		panic("You must provide an output file name.")
 	}
 
 	if *length <= 0 {
@@ -73,6 +74,9 @@ func main() {
 		// Add a sequence
 		str := patt.RandomNucl(random)
 		seq.SetSequence(str)
+
+		// Add the description if necessary
+		seq.SetDesc(*desc)
 
 		// Write it
 		seqOut.Write(*seq)
