@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/hdevillers/go-dl-seq/pattern"
-	"github.com/hdevillers/go-dl-seq/seqio"
 	"github.com/hdevillers/go-dl-seq/seq"
+	"github.com/hdevillers/go-dl-seq/seqio"
 )
 
 func check(e error) {
@@ -20,13 +20,13 @@ func check(e error) {
 func main() {
 	// Retrieve argument values
 	output := flag.String("output", "", "Output file name/path.")
-	format := flag.String("format", "fasta", "Input format.")
+	format := flag.String("format", "fasta", "Output format.")
 	length := flag.Int("length", 200, "Required sequence length.")
-	count  := flag.Int("n", 1, "Number of required sequence(s).")
-	base   := flag.String("base", "RandSeq_", "Sequence ID base name.")
-	seed   := flag.Int64("seed", 0, "Random seed initializer.")
-	pa     := flag.String("pattern", "", "Set specific pattern(s).")
-	desc   := flag.String("desc", "", "Set a description for each sequence.")
+	count := flag.Int("n", 1, "Number of required sequence(s).")
+	base := flag.String("base", "RandSeq_", "Sequence ID base name.")
+	seed := flag.Int64("seed", 0, "Random seed initializer.")
+	pa := flag.String("pattern", "", "Set specific pattern(s).")
+	desc := flag.String("desc", "", "Set a description for each sequence.")
 	flag.Parse()
 
 	if *output == "" {
@@ -64,7 +64,7 @@ func main() {
 	}
 
 	// Generate the required sequences
-	for i:=0 ; i<*count ; i++ {
+	for i := 0; i < *count; i++ {
 		// Create the new ID
 		id := *base + fmt.Sprintf("%06d", i)
 
