@@ -83,24 +83,30 @@ func (r *Reader) CheckPanic() {
 // Create a new Writer (from a file name and a format)
 func NewWriter(file string, format string) *Writer {
 	// Open a file in write/overide mode
-	f, err := os.Create(file)
-	if err == nil {
-		switch format {
-		case "fasta","fa":
-			var fwrit fasta.WriterInterface
-			fwrit = fasta.NewWriter(f)
+	var f *os.File
+	var err error
+	// Write into stdout if file is empty
+	if file == "" {
+		f = os.Stdout
+	} else {
+		f, err = os.Create(file)
+		if err != nil {
 			return &Writer{
-				fhdl:  f,
-				fwrit: fwrit,
-			}
-		default:
-			return &Writer{
-				err: errors.New("[SEQIO WRITER]: Unsupported format (" + format + ")."),
+				err: err,
 			}
 		}
-	} else {
+	}
+	switch format {
+	case "fasta","fa":
+		var fwrit fasta.WriterInterface
+		fwrit = fasta.NewWriter(f)
 		return &Writer{
-			err: err,
+			fhdl:  f,
+			fwrit: fwrit,
+		}
+	default:
+		return &Writer{
+			err: errors.New("[SEQIO WRITER]: Unsupported format (" + format + ")."),
 		}
 	}
 }

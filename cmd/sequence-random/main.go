@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"math/rand"
+	"os"
 	"time"
 
 	"github.com/hdevillers/go-dl-seq/pattern"
@@ -29,9 +30,9 @@ func main() {
 	desc := flag.String("desc", "", "Set a description for each sequence.")
 	flag.Parse()
 
-	if *output == "" {
+	/*if *output == "" {
 		panic("You must provide an output file name.")
-	}
+	}*/
 
 	if *length <= 0 {
 		panic("Sequence length must be greater than 0.")
@@ -47,7 +48,7 @@ func main() {
 	seeder := rand.NewSource(*seed)
 	random := rand.New(seeder)
 
-	fmt.Println("Used random seed:", *seed)
+	os.Stderr.WriteString(fmt.Sprintf("Used random seed: %d\n", *seed))
 
 	// Open ouput file
 	seqOut := seqio.NewWriter(*output, *format)

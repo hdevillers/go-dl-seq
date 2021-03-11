@@ -19,7 +19,7 @@ func main() {
 	// Retrieve argument values
 	input := flag.String("input", "", "Input sequence file.")
 	format := flag.String("format", "fasta", "Input/output format.")
-	output := flag.String("output", "shuffled.fasta", "Output sequence file.")
+	output := flag.String("output", "", "Output sequence file.")
 	flag.Parse()
 
 	if *input == "" {
