@@ -6,6 +6,7 @@ import (
 
 	"github.com/hdevillers/go-dl-seq/seq"
 	"github.com/hdevillers/go-dl-seq/seqio/fasta"
+	"github.com/hdevillers/go-dl-seq/seqio/fastq"
 )
 
 // Reader structure
@@ -39,6 +40,13 @@ func NewReader(file string, format string) *Reader {
 			fread = fasta.NewReader(f)
 			return &Reader{
 				fhdl:  f,
+				fread: fread,
+			}
+		case "fastq", "fq":
+			var fread fastq.ReaderInterface
+			fread = fastq.NewReader(f)
+			return &Reader{
+				fhdl: f,
 				fread: fread,
 			}
 		default:
@@ -100,6 +108,13 @@ func NewWriter(file string, format string) *Writer {
 	case "fasta","fa":
 		var fwrit fasta.WriterInterface
 		fwrit = fasta.NewWriter(f)
+		return &Writer{
+			fhdl:  f,
+			fwrit: fwrit,
+		}
+	case "fastq", "fq":
+		var fwrit fastq.WriterInterface
+		fwrit = fastq.NewWriter(f)
 		return &Writer{
 			fhdl:  f,
 			fwrit: fwrit,

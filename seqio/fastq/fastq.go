@@ -4,9 +4,9 @@ import (
 	"bufio"
 	"errors"
 	"io"
-	"strings"
+	//"strings"
 
-	"github.com/hdevillers/go-ld-seq/seq"
+	"github.com/hdevillers/go-dl-seq/seq"
 )
 
 const (
@@ -90,16 +90,17 @@ func (r* Reader) Read() (seq.Seq, error) {
 				newSeq.SetId(r.currId)
 
 				// Save the new ID
-				r.currId = line[1:] // Only skip the line preffix
+				r.currId = string(line[1:]) // Only skip the line preffix
+				r.waitQual = false
 
 				// Return the sequence
 				return newSeq, nil
 			} else {
 				// Save the new ID
-				r.currId = line[1:]
+				r.currId = string(line[1:])
 
 				// The sequence object should be empty
-				if newSeq.length() > 0 {
+				if newSeq.Length() > 0 {
 					return newSeq, errors.New("[FASTQ READER]: Sequence without ID ou bad format.")
 				}
 
@@ -112,7 +113,7 @@ func (r* Reader) Read() (seq.Seq, error) {
 				r.waitQual = true
 
 				// At that step, newSeq.Length must not be null
-				if newSeq.length() == 0 {
+				if newSeq.Length() == 0 {
 					return newSeq, errors.New("[FASTQ READER]: Empty sequence or bad format.")
 				}
 
@@ -121,11 +122,79 @@ func (r* Reader) Read() (seq.Seq, error) {
 				// Read sequence data or quality data
 				// NOTE: We accept non standard fastq with sequence on multiple lines
 				if r.waitQual {
-					
-				} else {
-
+					newSeq.AppendQuality(line)
+				} else {
+					newSeq.AppendSequence(line)
 				}
 			}
 		}
 	}
+	// Scanning is finished
+	r.eof = true
+
+	// Set last sequence ID
+	newSeq.SetId(r.currId)
+
+	if newSeq.Length() == 0 {
+		return newSeq, errors.New("[FASTQ READER]: Last sequence is null.")
+	}
+
+	// Return with no error
+	return newSeq, nil
+}
+
+func (w *Writer) Write(s seq.Seq) error {
+	// Check sequence validity
+	if s.Id == "" {
+		return errors.New("[FASTQ WRITER]: Missing sequence ID.")
+	}
+	if s.Length() == 0 {
+		return errors.New("[FASTQ WRITER]: Cannot write out empty sequences.")
+	}
+	if s.Length() != len(s.Quality) {
+		return errors.New("[FASTQ WRITER]: Sequence and quality with different lengths.")
+	}
+
+	// Add the ID
+	_, err := w.write.WriteString(string(IdPreffix) + s.Id)
+	if err != nil {
+		return err
+	}
+	err = w.write.WriteByte('\n')
+	if err != nil {
+		return err
+	}
+
+	// Add the sequence
+	_, err = w.write.Write(s.Sequence)
+	if err != nil {
+		return err
+	}
+	err = w.write.WriteByte('\n')
+	if err != nil {
+		return err
+	}
+	err = w.write.WriteByte(SpPreffix)
+	if err != nil {
+		return err
+	}
+	err = w.write.WriteByte('\n')
+	if err != nil {
+		return err
+	}
+
+	// Add the quaity
+	_, err = w.write.Write(s.Quality)
+	if err != nil {
+		return err
+	}
+	err = w.write.WriteByte('\n')
+	if err != nil {
+		return err
+	}
+
+	err = w.write.Flush()
+	w.Count++
+
+	return err
 }
