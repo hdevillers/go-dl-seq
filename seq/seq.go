@@ -1,10 +1,14 @@
 package seq
 
+import (
+	"github.com/hdevillers/go-dl-seq/quality"
+)
+
 type Seq struct {
 	Id       string
 	Desc     string
 	Sequence []byte
-	Quality  []byte
+	Quality  quality.Quality
 }
 
 func NewSeq(id string) *Seq {
@@ -24,16 +28,8 @@ func (s *Seq) SetSequence(sequence []byte) {
 	s.Sequence = sequence
 }
 
-func (s *Seq) SetQuality(quality []byte) {
-	s.Quality = quality
-}
-
 func (s *Seq) AppendSequence(sequence []byte) {
 	s.Sequence = append(s.Sequence, sequence...)
-}
-
-func (s *Seq) AppendQuality(quality []byte) {
-	s.Quality = append(s.Quality, quality...)
 }
 
 func (s *Seq) Length() int {

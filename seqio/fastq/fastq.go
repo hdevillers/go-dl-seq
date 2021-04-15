@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"errors"
 	"io"
+	"fmt"
+	"os"
 	//"strings"
 
 	"github.com/hdevillers/go-dl-seq/seq"
@@ -122,7 +124,9 @@ func (r* Reader) Read() (seq.Seq, error) {
 				// Read sequence data or quality data
 				// NOTE: We accept non standard fastq with sequence on multiple lines
 				if r.waitQual {
-					newSeq.AppendQuality(line)
+					qerr := newSeq.Quality.AppendStrScore(line)
+					// qerr are not fatal, just thow it
+					fmt.Fprintln(os.Stderr, qerr)
 				} else {
 					newSeq.AppendSequence(line)
 				}
@@ -151,7 +155,11 @@ func (w *Writer) Write(s seq.Seq) error {
 	if s.Length() == 0 {
 		return errors.New("[FASTQ WRITER]: Cannot write out empty sequences.")
 	}
-	if s.Length() != len(s.Quality) {
+	if len(s.Quality.StrScore) == 0 {
+		// If the quality is empty, then generate a fake score
+		s.Quality.GenerateDefaultScore(s.Length())
+	}
+	if s.Length() != len(s.Quality.StrScore) {
 		return errors.New("[FASTQ WRITER]: Sequence and quality with different lengths.")
 	}
 
@@ -184,7 +192,7 @@ func (w *Writer) Write(s seq.Seq) error {
 	}
 
 	// Add the quaity
-	_, err = w.write.Write(s.Quality)
+	_, err = w.write.Write(s.Quality.StrScore)
 	if err != nil {
 		return err
 	}
