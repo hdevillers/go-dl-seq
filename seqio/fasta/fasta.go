@@ -40,9 +40,9 @@ type Writer struct {
 }
 
 // Generate a new reader
-func NewReader(f io.Reader) *Reader {
+func NewReader(sf *bufio.Scanner) *Reader {
 	return &Reader{
-		scan:     bufio.NewScanner(f),
+		scan:     sf,
 		currId:   "",
 		currDesc: "",
 		eof:      false,

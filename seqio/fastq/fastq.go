@@ -3,9 +3,10 @@ package fastq
 import (
 	"bufio"
 	"errors"
-	"io"
 	"fmt"
+	"io"
 	"os"
+
 	//"strings"
 
 	"github.com/hdevillers/go-dl-seq/seq"
@@ -42,9 +43,9 @@ type Writer struct {
 }
 
 // Generate a new reader
-func NewReader(f io.Reader) *Reader {
+func NewReader(sf *bufio.Scanner) *Reader {
 	return &Reader{
-		scan:     bufio.NewScanner(f),
+		scan:     sf,
 		currId:   "",
 		eof:      false,
 		waitQual: false,
@@ -65,7 +66,7 @@ func (r *Reader) IsEOF() bool {
 }
 
 // Read a single fastq entry
-func (r* Reader) Read() (seq.Seq, error) {
+func (r *Reader) Read() (seq.Seq, error) {
 	// Initialize the new sequence
 	var newSeq seq.Seq
 

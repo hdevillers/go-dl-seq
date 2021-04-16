@@ -1,7 +1,10 @@
 package seqio
 
 import (
+	"bufio"
+	"compress/gzip"
 	"errors"
+	"io"
 	"os"
 
 	"github.com/hdevillers/go-dl-seq/seq"
@@ -33,20 +36,42 @@ type Writer struct {
 func NewReader(file string, format string) *Reader {
 	// Open file in read mode
 	f, err := os.Open(file)
+	if err != nil {
+		return &Reader{
+			err: err,
+		}
+	}
+
+	// Check if it is a GZ compressed file
+	var rf io.Reader
+	var sf *bufio.Scanner
+	rf, err = gzip.NewReader(f)
+	if err != nil {
+		// This is not a GZ file
+		// Reset the io.Reader
+		f.Close()
+		f, err = os.Open(file)
+		// Create the scanner
+		sf = bufio.NewScanner(f)
+	} else {
+		// This is a GZ file
+		sf = bufio.NewScanner(rf)
+	}
+
 	if err == nil {
 		switch format {
 		case "fasta", "fa":
 			var fread fasta.ReaderInterface
-			fread = fasta.NewReader(f)
+			fread = fasta.NewReader(sf)
 			return &Reader{
 				fhdl:  f,
 				fread: fread,
 			}
 		case "fastq", "fq":
 			var fread fastq.ReaderInterface
-			fread = fastq.NewReader(f)
+			fread = fastq.NewReader(sf)
 			return &Reader{
-				fhdl: f,
+				fhdl:  f,
 				fread: fread,
 			}
 		default:
@@ -105,7 +130,7 @@ func NewWriter(file string, format string) *Writer {
 		}
 	}
 	switch format {
-	case "fasta","fa":
+	case "fasta", "fa":
 		var fwrit fasta.WriterInterface
 		fwrit = fasta.NewWriter(f)
 		return &Writer{
