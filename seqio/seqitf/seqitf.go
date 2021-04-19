@@ -21,6 +21,11 @@ type SeqWriter interface {
 }
 
 // File handling interfaces
+type FileScanner interface {
+	Scan() bool
+	Err() error
+	Bytes() []byte
+}
 type FileWriter interface {
 	Write(p []byte) (n int, err error)
 	Flush() error

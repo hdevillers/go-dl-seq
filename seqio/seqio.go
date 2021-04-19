@@ -18,10 +18,10 @@ const (
 
 // Reader structure
 type Reader struct {
-	fhdl  *os.File
-	fread seqitf.SeqReader
-	seq   seq.Seq
-	err   error
+	fcloser seqitf.FileCloser
+	sreader seqitf.SeqReader
+	seq     seq.Seq
+	err     error
 }
 
 // Writer structure
@@ -53,34 +53,37 @@ func NewReader(file string, format string, compress ...bool) *Reader {
 	}
 
 	// Inti. the bufio.Scanner
-	var sf *bufio.Scanner
+	var fs seqitf.FileScanner
+	var fc seqitf.FileCloser
+
 	if compress[0] {
 		// Need de-compression
-		rf, err := gzip.NewReader(f)
+		fgzip, err := gzip.NewReader(f)
 		if err != nil {
 			return &Reader{
 				err: err,
 			}
 		}
-		sf = bufio.NewScanner(rf)
+		fc = fgzip
+		fs = bufio.NewScanner(fgzip)
 	} else {
 		// No de-compression needed
-		sf = bufio.NewScanner(f)
+		fs = bufio.NewScanner(f)
+		fc = f
 	}
 
+	var sreader seqitf.SeqReader
 	switch format {
 	case "fasta", "fa":
-		var fread fasta.ReaderInterface
-		fread = fasta.NewReader(sf)
+		sreader = fasta.NewReader(fs)
 		return &Reader{
-			fhdl:  f,
-			fread: fread}
+			fcloser: fc,
+			sreader: sreader}
 	case "fastq", "fq":
-		var fread fastq.ReaderInterface
-		fread = fastq.NewReader(sf)
+		sreader = fastq.NewReader(fs)
 		return &Reader{
-			fhdl:  f,
-			fread: fread,
+			fcloser: fc,
+			sreader: sreader,
 		}
 	default:
 		return &Reader{
@@ -91,10 +94,10 @@ func NewReader(file string, format string, compress ...bool) *Reader {
 
 // Read next sequence
 func (r *Reader) Next() bool {
-	if r.fread.IsEOF() {
+	if r.sreader.IsEOF() {
 		return false
 	} else {
-		r.seq, r.err = r.fread.Read()
+		r.seq, r.err = r.sreader.Read()
 		return true
 	}
 }
@@ -106,7 +109,7 @@ func (r *Reader) Seq() seq.Seq {
 
 // Close file handle
 func (r *Reader) Close() {
-	r.fhdl.Close()
+	r.fcloser.Close()
 }
 
 // Get errors

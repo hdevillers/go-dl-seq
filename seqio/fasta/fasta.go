@@ -1,7 +1,6 @@
 package fasta
 
 import (
-	"bufio"
 	"errors"
 	"strings"
 
@@ -14,20 +13,9 @@ const (
 	LineLength int  = 60
 )
 
-// Define fasta reader interface
-type ReaderInterface interface {
-	Read() (seq.Seq, error)
-	IsEOF() bool
-}
-
-// Define fasta writer interface
-type WriterInterface interface {
-	Write(seq.Seq) error
-}
-
 // Fasta sequence reader struct
 type Reader struct {
-	scan     *bufio.Scanner
+	scan     seqitf.FileScanner
 	currId   string
 	currDesc string
 	eof      bool
@@ -40,9 +28,9 @@ type Writer struct {
 }
 
 // Generate a new reader
-func NewReader(sf *bufio.Scanner) *Reader {
+func NewReader(fs seqitf.FileScanner) *Reader {
 	return &Reader{
-		scan:     sf,
+		scan:     fs,
 		currId:   "",
 		currDesc: "",
 		eof:      false,
@@ -51,9 +39,9 @@ func NewReader(sf *bufio.Scanner) *Reader {
 
 // Generate a new writer
 //func NewWriter(wf *bufio.Writer) *Writer {
-func NewWriter(wf seqitf.FileWriter) *Writer {
+func NewWriter(fw seqitf.FileWriter) *Writer {
 	return &Writer{
-		write: wf,
+		write: fw,
 		Count: 0,
 	}
 }

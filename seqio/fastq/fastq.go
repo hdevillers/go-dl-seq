@@ -1,7 +1,6 @@
 package fastq
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"os"
@@ -15,15 +14,9 @@ const (
 	SpPreffix byte = '+'
 )
 
-// Define the fastq reader interface
-type ReaderInterface interface {
-	Read() (seq.Seq, error)
-	IsEOF() bool
-}
-
 // Fastq sequence reader struct
 type Reader struct {
-	scan     *bufio.Scanner
+	scan     seqitf.FileScanner
 	currId   string
 	eof      bool
 	waitQual bool
@@ -36,9 +29,9 @@ type Writer struct {
 }
 
 // Generate a new reader
-func NewReader(sf *bufio.Scanner) *Reader {
+func NewReader(fs seqitf.FileScanner) *Reader {
 	return &Reader{
-		scan:     sf,
+		scan:     fs,
 		currId:   "",
 		eof:      false,
 		waitQual: false,
