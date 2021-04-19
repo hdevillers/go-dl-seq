@@ -6,11 +6,12 @@ import (
 	"strings"
 
 	"github.com/hdevillers/go-dl-seq/seq"
+	"github.com/hdevillers/go-dl-seq/seqio/seqitf"
 )
 
 const (
-	IdPreffix  = '>'
-	LineLength = 60
+	IdPreffix  byte = '>'
+	LineLength int  = 60
 )
 
 // Define fasta reader interface
@@ -34,7 +35,7 @@ type Reader struct {
 
 // Fasta sequence write struct
 type Writer struct {
-	write *bufio.Writer
+	write seqitf.FileWriter
 	Count int
 }
 
@@ -49,7 +50,8 @@ func NewReader(sf *bufio.Scanner) *Reader {
 }
 
 // Generate a new writer
-func NewWriter(wf *bufio.Writer) *Writer {
+//func NewWriter(wf *bufio.Writer) *Writer {
+func NewWriter(wf seqitf.FileWriter) *Writer {
 	return &Writer{
 		write: wf,
 		Count: 0,
@@ -139,19 +141,19 @@ func (w *Writer) Write(s seq.Seq) error {
 	if s.Id == "" {
 		return errors.New("[FASTA WRITER]: Missing sequence ID.")
 	}
-	_, err := w.write.WriteString(">" + s.Id)
+	_, err := w.write.Write([]byte(">" + s.Id))
 	if err != nil {
 		return err
 	}
 
 	// Add the description
 	if s.Desc != "" {
-		_, err = w.write.WriteString(" " + s.Desc)
+		_, err = w.write.Write([]byte(" " + s.Desc))
 		if err != nil {
 			return err
 		}
 	}
-	err = w.write.WriteByte('\n')
+	_, err = w.write.Write([]byte{'\n'})
 	if err != nil {
 		return err
 	}
@@ -160,15 +162,15 @@ func (w *Writer) Write(s seq.Seq) error {
 	// NOTE: We assume that if no error occured above, io.writer is OK
 	n := 0
 	for i := 0; i < s.Length(); i++ {
-		w.write.WriteByte(s.Sequence[i])
+		w.write.Write([]byte{s.Sequence[i]})
 		n++
 		if n == LineLength {
-			w.write.WriteByte('\n')
+			w.write.Write([]byte{'\n'})
 			n = 0
 		}
 	}
 	if n != 0 {
-		w.write.WriteByte('\n')
+		w.write.Write([]byte{'\n'})
 	}
 
 	// Flush written bytes

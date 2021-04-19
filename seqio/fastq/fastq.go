@@ -6,25 +6,19 @@ import (
 	"fmt"
 	"os"
 
-	//"strings"
-
 	"github.com/hdevillers/go-dl-seq/seq"
+	"github.com/hdevillers/go-dl-seq/seqio/seqitf"
 )
 
 const (
-	IdPreffix = '@'
-	SpPreffix = '+'
+	IdPreffix byte = '@'
+	SpPreffix byte = '+'
 )
 
 // Define the fastq reader interface
 type ReaderInterface interface {
 	Read() (seq.Seq, error)
 	IsEOF() bool
-}
-
-// Define the fastq writer interface
-type WriterInterface interface {
-	Write(seq.Seq) error
 }
 
 // Fastq sequence reader struct
@@ -37,7 +31,7 @@ type Reader struct {
 
 // Fastq sequence writer struct
 type Writer struct {
-	write *bufio.Writer
+	write seqitf.FileWriter
 	Count int
 }
 
@@ -52,9 +46,9 @@ func NewReader(sf *bufio.Scanner) *Reader {
 }
 
 // Generate a new writer
-func NewWriter(wf *bufio.Writer) *Writer {
+func NewWriter(fw seqitf.FileWriter) *Writer {
 	return &Writer{
-		write: wf,
+		write: fw,
 		Count: 0,
 	}
 }
@@ -164,39 +158,26 @@ func (w *Writer) Write(s seq.Seq) error {
 	}
 
 	// Add the ID
-	_, err := w.write.WriteString(string(IdPreffix) + s.Id)
+	_, err := w.write.Write([]byte{IdPreffix})
+	_, err = w.write.Write([]byte(s.Id))
 	if err != nil {
 		return err
 	}
-	err = w.write.WriteByte('\n')
-	if err != nil {
-		return err
-	}
+	_, err = w.write.Write([]byte{'\n'})
 
 	// Add the sequence
 	_, err = w.write.Write(s.Sequence)
 	if err != nil {
 		return err
 	}
-	err = w.write.WriteByte('\n')
-	if err != nil {
-		return err
-	}
-	err = w.write.WriteByte(SpPreffix)
-	if err != nil {
-		return err
-	}
-	err = w.write.WriteByte('\n')
-	if err != nil {
-		return err
-	}
+	_, err = w.write.Write([]byte{'\n', SpPreffix, '\n'})
 
 	// Add the quaity
 	_, err = w.write.Write(s.Quality.StrScore)
 	if err != nil {
 		return err
 	}
-	err = w.write.WriteByte('\n')
+	_, err = w.write.Write([]byte{'\n'})
 	if err != nil {
 		return err
 	}

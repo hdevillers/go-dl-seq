@@ -9,6 +9,7 @@ import (
 	"github.com/hdevillers/go-dl-seq/seq"
 	"github.com/hdevillers/go-dl-seq/seqio/fasta"
 	"github.com/hdevillers/go-dl-seq/seqio/fastq"
+	"github.com/hdevillers/go-dl-seq/seqio/seqitf"
 )
 
 const (
@@ -18,21 +19,16 @@ const (
 // Reader structure
 type Reader struct {
 	fhdl  *os.File
-	fread interface {
-		Read() (seq.Seq, error)
-		IsEOF() bool
-	}
-	seq seq.Seq
-	err error
+	fread seqitf.SeqReader
+	seq   seq.Seq
+	err   error
 }
 
 // Writer structure
 type Writer struct {
-	fhdl  *os.File
-	fwrit interface {
-		Write(seq.Seq) error
-	}
-	err error
+	fcloser seqitf.FileCloser
+	swriter seqitf.SeqWriter
+	err     error
 }
 
 // Create a new reader (from a file name and a format)
@@ -143,30 +139,33 @@ func NewWriter(file string, format string, compress ...bool) *Writer {
 	}
 
 	// Inti. the bufio.Scanner
-	var wf *bufio.Writer
+	var fw seqitf.FileWriter
+	var fc seqitf.FileCloser
+
 	if compress[0] {
 		// Need de-compression
-		rf := gzip.NewWriter(f)
-		wf = bufio.NewWriter(rf)
+		fgz := gzip.NewWriter(f)
+		fw = fgz
+		fc = fgz
 	} else {
 		// No de-compression needed
-		wf = bufio.NewWriter(f)
+		fw = bufio.NewWriter(f)
+		fc = f
 	}
 
+	var swriter seqitf.SeqWriter
 	switch format {
 	case "fasta", "fa":
-		var fwrit fasta.WriterInterface
-		fwrit = fasta.NewWriter(wf)
+		swriter = fasta.NewWriter(fw)
 		return &Writer{
-			fhdl:  f,
-			fwrit: fwrit,
+			fcloser: fc,
+			swriter: swriter,
 		}
 	case "fastq", "fq":
-		var fwrit fastq.WriterInterface
-		fwrit = fastq.NewWriter(wf)
+		swriter = fastq.NewWriter(fw)
 		return &Writer{
-			fhdl:  f,
-			fwrit: fwrit,
+			fcloser: fc,
+			swriter: swriter,
 		}
 	default:
 		return &Writer{
@@ -177,12 +176,12 @@ func NewWriter(file string, format string, compress ...bool) *Writer {
 
 // Append a sequence in the output file
 func (w *Writer) Write(s seq.Seq) {
-	w.err = w.fwrit.Write(s)
+	w.err = w.swriter.Write(s)
 }
 
 // Close output file
 func (w *Writer) Close() {
-	w.fhdl.Close()
+	w.fcloser.Close()
 }
 
 // Throw a panic in case of error
