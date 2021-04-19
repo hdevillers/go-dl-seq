@@ -22,7 +22,7 @@ func main() {
 	// Retrieve argument values
 	output := flag.String("output", "", "Output file name/path.")
 	format := flag.String("format", "fasta", "Output format.")
-	gzip := flag.Bool("gzip", false, "Compress (gz) output.")
+	gzip := flag.Bool("c", false, "Compress output (gz).")
 	length := flag.Int("length", 200, "Required sequence length.")
 	count := flag.Int("n", 1, "Number of required sequence(s).")
 	base := flag.String("base", "RandSeq_", "Sequence ID base name.")

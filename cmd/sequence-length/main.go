@@ -17,7 +17,7 @@ func main() {
 	// Retrieve argument values
 	input := flag.String("input", "STDIN", "Input fasta file")
 	format := flag.String("format", "fasta", "Input format.")
-	gunzip := flag.Bool("gunzip", false, "Input must is compressed.")
+	gunzip := flag.Bool("d", false, "Decompress the input (gz).")
 	flag.Parse()
 
 	if *input == "" {

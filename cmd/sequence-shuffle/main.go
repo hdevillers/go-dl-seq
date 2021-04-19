@@ -17,11 +17,11 @@ func check(e error) {
 
 func main() {
 	// Retrieve argument values
-	input := flag.String("input", "", "Input sequence file.")
+	input := flag.String("input", "STDIN", "Input sequence file.")
 	format := flag.String("format", "fasta", "Input/output format.")
 	output := flag.String("output", "", "Output sequence file.")
-	gzip := flag.Bool("gzip", false, "Compress (gz) output.")
-	gunzip := flag.Bool("gunzip", false, "Input is compressed (gz).")
+	gzip := flag.Bool("c", false, "Compress the output (gz).")
+	gunzip := flag.Bool("d", false, "Decompress the input (gz).")
 	flag.Parse()
 
 	if *input == "" {
