@@ -4,12 +4,15 @@ import (
 	"bufio"
 	"compress/gzip"
 	"errors"
-	"io"
 	"os"
 
 	"github.com/hdevillers/go-dl-seq/seq"
 	"github.com/hdevillers/go-dl-seq/seqio/fasta"
 	"github.com/hdevillers/go-dl-seq/seqio/fastq"
+)
+
+const (
+	defaultCompress = false
 )
 
 // Reader structure
@@ -33,55 +36,59 @@ type Writer struct {
 }
 
 // Create a new reader (from a file name and a format)
-func NewReader(file string, format string) *Reader {
+func NewReader(file string, format string, compress ...bool) *Reader {
 	// Open file in read mode
-	f, err := os.Open(file)
-	if err != nil {
-		return &Reader{
-			err: err,
-		}
-	}
-
-	// Check if it is a GZ compressed file
-	var rf io.Reader
-	var sf *bufio.Scanner
-	rf, err = gzip.NewReader(f)
-	if err != nil {
-		// This is not a GZ file
-		// Reset the io.Reader
-		f.Close()
+	var f *os.File
+	var err error
+	if file == "STDIN" {
+		f = os.Stdin
+	} else {
 		f, err = os.Open(file)
-		// Create the scanner
-		sf = bufio.NewScanner(f)
-	} else {
-		// This is a GZ file
-		sf = bufio.NewScanner(rf)
-	}
-
-	if err == nil {
-		switch format {
-		case "fasta", "fa":
-			var fread fasta.ReaderInterface
-			fread = fasta.NewReader(sf)
+		if err != nil {
 			return &Reader{
-				fhdl:  f,
-				fread: fread,
-			}
-		case "fastq", "fq":
-			var fread fastq.ReaderInterface
-			fread = fastq.NewReader(sf)
-			return &Reader{
-				fhdl:  f,
-				fread: fread,
-			}
-		default:
-			return &Reader{
-				err: errors.New("[SEQIO READER]: Unsupported format (" + format + ")."),
+				err: err,
 			}
 		}
+	}
+
+	// Check compression argument
+	if len(compress) == 0 {
+		compress = append(compress, defaultCompress)
+	}
+
+	// Inti. the bufio.Scanner
+	var sf *bufio.Scanner
+	if compress[0] {
+		// Need de-compression
+		rf, err := gzip.NewReader(f)
+		if err != nil {
+			return &Reader{
+				err: err,
+			}
+		}
+		sf = bufio.NewScanner(rf)
 	} else {
+		// No de-compression needed
+		sf = bufio.NewScanner(f)
+	}
+
+	switch format {
+	case "fasta", "fa":
+		var fread fasta.ReaderInterface
+		fread = fasta.NewReader(sf)
 		return &Reader{
-			err: err,
+			fhdl:  f,
+			fread: fread}
+	case "fastq", "fq":
+		var fread fastq.ReaderInterface
+		fread = fastq.NewReader(sf)
+		return &Reader{
+			fhdl:  f,
+			fread: fread,
+		}
+	default:
+		return &Reader{
+			err: errors.New("[SEQIO READER]: Unsupported format (" + format + ")."),
 		}
 	}
 }
@@ -114,7 +121,7 @@ func (r *Reader) CheckPanic() {
 }
 
 // Create a new Writer (from a file name and a format)
-func NewWriter(file string, format string) *Writer {
+func NewWriter(file string, format string, compress ...bool) *Writer {
 	// Open a file in write/overide mode
 	var f *os.File
 	var err error
@@ -129,17 +136,34 @@ func NewWriter(file string, format string) *Writer {
 			}
 		}
 	}
+
+	// Check compression argument
+	if len(compress) == 0 {
+		compress = append(compress, defaultCompress)
+	}
+
+	// Inti. the bufio.Scanner
+	var wf *bufio.Writer
+	if compress[0] {
+		// Need de-compression
+		rf := gzip.NewWriter(f)
+		wf = bufio.NewWriter(rf)
+	} else {
+		// No de-compression needed
+		wf = bufio.NewWriter(f)
+	}
+
 	switch format {
 	case "fasta", "fa":
 		var fwrit fasta.WriterInterface
-		fwrit = fasta.NewWriter(f)
+		fwrit = fasta.NewWriter(wf)
 		return &Writer{
 			fhdl:  f,
 			fwrit: fwrit,
 		}
 	case "fastq", "fq":
 		var fwrit fastq.WriterInterface
-		fwrit = fastq.NewWriter(f)
+		fwrit = fastq.NewWriter(wf)
 		return &Writer{
 			fhdl:  f,
 			fwrit: fwrit,

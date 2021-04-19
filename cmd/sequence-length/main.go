@@ -15,8 +15,9 @@ func check(e error) {
 
 func main() {
 	// Retrieve argument values
-	input := flag.String("input", "", "Input fasta file")
+	input := flag.String("input", "STDIN", "Input fasta file")
 	format := flag.String("format", "fasta", "Input format.")
+	gunzip := flag.Bool("gunzip", false, "Input must is compressed.")
 	flag.Parse()
 
 	if *input == "" {
@@ -24,7 +25,7 @@ func main() {
 	}
 
 	// Open sequence file
-	seqIn := seqio.NewReader(*input, *format)
+	seqIn := seqio.NewReader(*input, *format, *gunzip)
 	seqIn.CheckPanic()
 	defer seqIn.Close()
 

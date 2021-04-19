@@ -3,7 +3,6 @@ package fasta
 import (
 	"bufio"
 	"errors"
-	"io"
 	"strings"
 
 	"github.com/hdevillers/go-dl-seq/seq"
@@ -50,9 +49,9 @@ func NewReader(sf *bufio.Scanner) *Reader {
 }
 
 // Generate a new writer
-func NewWriter(f io.Writer) *Writer {
+func NewWriter(wf *bufio.Writer) *Writer {
 	return &Writer{
-		write: bufio.NewWriter(f),
+		write: wf,
 		Count: 0,
 	}
 }

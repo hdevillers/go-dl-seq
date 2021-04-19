@@ -22,6 +22,7 @@ func main() {
 	// Retrieve argument values
 	output := flag.String("output", "", "Output file name/path.")
 	format := flag.String("format", "fasta", "Output format.")
+	gzip := flag.Bool("gzip", false, "Compress (gz) output.")
 	length := flag.Int("length", 200, "Required sequence length.")
 	count := flag.Int("n", 1, "Number of required sequence(s).")
 	base := flag.String("base", "RandSeq_", "Sequence ID base name.")
@@ -29,10 +30,6 @@ func main() {
 	pa := flag.String("pattern", "", "Set specific pattern(s).")
 	desc := flag.String("desc", "", "Set a description for each sequence.")
 	flag.Parse()
-
-	/*if *output == "" {
-		panic("You must provide an output file name.")
-	}*/
 
 	if *length <= 0 {
 		panic("Sequence length must be greater than 0.")
@@ -51,7 +48,7 @@ func main() {
 	os.Stderr.WriteString(fmt.Sprintf("Used random seed: %d\n", *seed))
 
 	// Open ouput file
-	seqOut := seqio.NewWriter(*output, *format)
+	seqOut := seqio.NewWriter(*output, *format, *gzip)
 	seqOut.CheckPanic()
 	defer seqOut.Close()
 

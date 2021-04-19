@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 
 	//"strings"
@@ -53,9 +52,9 @@ func NewReader(sf *bufio.Scanner) *Reader {
 }
 
 // Generate a new writer
-func NewWriter(f io.Writer) *Writer {
+func NewWriter(wf *bufio.Writer) *Writer {
 	return &Writer{
-		write: bufio.NewWriter(f),
+		write: wf,
 		Count: 0,
 	}
 }
