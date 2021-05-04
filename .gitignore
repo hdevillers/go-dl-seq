@@ -34,6 +34,10 @@ dataset/*
 encoding/*
 !encoding/*.go
 
+!kmer/
+kmer/*
+!kmer/*.go
+
 !pattern/
 pattern/*
 !pattern/*.go
