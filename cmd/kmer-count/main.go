@@ -29,5 +29,7 @@ func main() {
 		kmerCounter.Count(s.Sequence)
 	}
 
+	kmerCounter.Finish()
+
 	kmerCounter.PrintAll()
 }
