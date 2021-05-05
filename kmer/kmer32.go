@@ -75,3 +75,28 @@ func Kmer32String(w uint32, k int) string {
 	}
 	return string(ws)
 }
+
+// Kmer Slice for uint32
+type Kmer32Slice struct {
+	W []uint32
+}
+
+func NewKmer32Slice() *Kmer32Slice {
+	return &Kmer32Slice{}
+}
+
+func (ks *Kmer32Slice) Len() int {
+	return len(ks.W)
+}
+
+func (ks *Kmer32Slice) Less(i, j int) bool {
+	return ks.W[i] < ks.W[j]
+}
+
+func (ks *Kmer32Slice) Swap(i, j int) {
+	ks.W[i], ks.W[j] = ks.W[j], ks.W[i]
+}
+
+func (ks *Kmer32Slice) Extend(n int) {
+	ks.W = append(ks.W, make([]uint32, n)...)
+}
