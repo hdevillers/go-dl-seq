@@ -9,13 +9,18 @@ type Kmer32 struct {
 	D uint32   // Deleter
 }
 
+// Initialize alphabet
+func initAlphabet() []byte {
+	return []byte{'A', 'C', 'G', 'T'}
+}
+
 // Initalize a Kmer manager
 func NewKmer32(k int) *Kmer32 {
 	var km Kmer32
 	km.K = uint8(k)
 	km.W = uint32(0)
 	km.B = make([]uint32, 256)
-	km.A = []byte{'A', 'C', 'G', 'T'}
+	km.A = initAlphabet()
 	km.D = uint32(3) << uint32(2*k)
 
 	// Set base values
@@ -58,4 +63,15 @@ func (kmer *Kmer32) AddBase(b byte) {
 	kmer.W = (kmer.W << 2) | kmer.B[b]
 	// Delete the byte at the left
 	kmer.W = (kmer.W | kmer.D) ^ kmer.D
+}
+
+func Kmer32String(w uint32, k int) string {
+	// Get alphabet
+	a := initAlphabet()
+	ws := make([]byte, k)
+	for i := 1; i <= k; i++ {
+		ws[k-i] = a[int(w&uint32(3))]
+		w = w >> 2
+	}
+	return string(ws)
 }
