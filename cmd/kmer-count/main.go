@@ -13,10 +13,17 @@ func main() {
 	i := flag.String("i", "", "Input sequence file.")
 	f := flag.String("f", "fasta", "Input sequence format.")
 	d := flag.Bool("d", false, "Decompress the input (gz).")
+	a := flag.Bool("a", false, "Print all Kmers, including zero-count.")
 	flag.Parse()
 
 	if *i == "" {
 		panic("You must provide an input fasta file.")
+	}
+
+	if *a {
+		if *k > kmer.MaxKPrintAll {
+			panic("K value is too large to print all possible Kmers.")
+		}
 	}
 
 	seqIn := seqio.NewReader(*i, *f, *d)
@@ -42,5 +49,9 @@ func main() {
 	kmerCounter.Finish()
 
 	// Print out counted value
-	kmerCounter.Print()
+	if *a {
+		kmerCounter.PrintAll()
+	} else {
+		kmerCounter.Print()
+	}
 }

@@ -3,6 +3,7 @@ package kmer
 import (
 	"errors"
 	"fmt"
+	"math"
 	"sort"
 )
 
@@ -98,10 +99,20 @@ func (cl *clarge32) PrintAll() {
 	if !cl.F {
 		panic(errors.New("[KMER SMALL COUNTER]: Before printing counted values, you must call the Finish method."))
 	}
-	// TODO: in fact, not possible
 	k := int(cl.Km.K)
-	for i := 0; i < cl.I.Len(); i++ {
-		fmt.Printf("%s\t%d\n", Kmer32String(cl.I.W[i], k), cl.C[i])
+	if k > MaxKPrintAll {
+		panic(errors.New("[KMER LARGE COUNTER]: K value to large to print all possibilities."))
+	}
+	n := math.Pow(4.0, float64(k))
+	j := 0
+	J := cl.I.Len()
+	for i := 0; i < int(n); i++ {
+		if j < J && cl.I.W[j] == uint32(i) {
+			fmt.Printf("%s\t%d\n", Kmer32String(cl.I.W[j], k), cl.C[j])
+			j++
+		} else {
+			fmt.Printf("%s\t%d\n", Kmer32String(uint32(i), k), 0)
+		}
 	}
 }
 
