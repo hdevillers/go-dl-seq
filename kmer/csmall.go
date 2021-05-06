@@ -6,8 +6,6 @@ import (
 	"math"
 )
 
-// TODO: Slice of id to be similar to large counter
-
 type csmall struct {
 	Km *Kmer32  // Kmer manager
 	C  []uint64 // Kmer counter
@@ -54,7 +52,20 @@ func (cs *csmall) PrintAll() {
 	if !cs.F {
 		panic(errors.New("[KMER SMALL COUNTER]: Before printing counted values, you must call the Finish method."))
 	}
+	k := int(cs.Km.K)
 	for i := 0; i < len(cs.C); i++ {
-		fmt.Printf("%s\t%d\n", Kmer32String(uint32(i), int(cs.Km.K)), cs.C[i])
+		fmt.Printf("%s\t%d\n", Kmer32String(uint32(i), k), cs.C[i])
+	}
+}
+
+func (cs *csmall) Print() {
+	if !cs.F {
+		panic(errors.New("[KMER SMALL COUNTER]: Before printing counted values, you must call the Finish method."))
+	}
+	k := int(cs.Km.K)
+	for i := 0; i < len(cs.C); i++ {
+		if cs.C[i] != 0 {
+			fmt.Printf("%s\t%d\n", Kmer32String(uint32(i), k), cs.C[i])
+		}
 	}
 }

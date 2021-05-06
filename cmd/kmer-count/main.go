@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 
 	"github.com/hdevillers/go-dl-seq/kmer"
@@ -20,16 +21,26 @@ func main() {
 
 	seqIn := seqio.NewReader(*i, *f, *d)
 
-	kmerCounter := kmer.NewCsmall(*k)
+	// Determine the type of counter
+	var kmerCounter kmer.KmerCounter
+	if *k <= kmer.MaxKSmall {
+		kmerCounter = kmer.NewCsmall(*k)
+	} else if *k <= kmer.MaxK32Bits {
+		kmerCounter = kmer.NewClarge32(*k)
+	} else {
+		panic(errors.New("K value is too large."))
+	}
 
+	// Count Kmer in all input sequences
 	for seqIn.Next() {
 		seqIn.CheckPanic()
 		s := seqIn.Seq()
-
 		kmerCounter.Count(s.Sequence)
 	}
 
+	// Terminate counter
 	kmerCounter.Finish()
 
-	kmerCounter.PrintAll()
+	// Print out counted value
+	kmerCounter.Print()
 }
