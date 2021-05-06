@@ -11,6 +11,7 @@ const (
 type KmerCounter interface {
 	Count([]byte)
 	Finish()
+	NextChannel()
 	Print()
 	PrintAll()
 }
