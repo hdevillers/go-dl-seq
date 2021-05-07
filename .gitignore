@@ -13,6 +13,9 @@ cmd/*
 !cmd/dataset-onehot/
 cmd/dataset-onehot/*
 !cmd/dataset-onehot/main.go
+!cmd/fastq-filter/
+cmd/fastq-filter/*
+!cmd/fastq-filter/main.go
 !cmd/fastq-stat/
 cmd/fastq-stat/*
 !cmd/fastq-stat/main.go
@@ -62,6 +65,9 @@ seqio/fasta/*
 !seqio/fastq/
 seqio/fastq/*
 !seqio/fastq/*.go
+!seqio/fastnq/
+seqio/fastnq/*
+!seqio/fastnq/*.go
 !seqio/seqitf/
 seqio/seqitf/*
 !seqio/seqitf/*.go
