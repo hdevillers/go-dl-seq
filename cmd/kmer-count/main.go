@@ -51,8 +51,8 @@ func main() {
 	var kmerCounter kmer.KmerCounter
 	if *k <= kmer.MaxKSmall {
 		kmerCounter = kmer.NewCsmall(*k, nc)
-		/*} else if *k <= kmer.MaxK32Bits {
-		kmerCounter = kmer.NewClarge32(*k)*/
+	} else if *k <= kmer.MaxK32Bits {
+		kmerCounter = kmer.NewClarge32(*k, nc)
 	} else {
 		panic(errors.New("K value is too large."))
 	}
@@ -67,19 +67,16 @@ func main() {
 			kmerCounter.Count(s.Sequence)
 		}
 
-		// Increment channel if required
+		// Finish and add a channel if not grouped
 		if !*g {
-			kmerCounter.NextChannel()
+			kmerCounter.Finish()
 		}
 	}
 
-	// If grouped increment channel to 1
+	// Finish the overall count if grouped
 	if *g {
-		kmerCounter.NextChannel()
+		kmerCounter.Finish()
 	}
-
-	// Terminate counter
-	kmerCounter.Finish()
 
 	// Print out counted value
 	if *a {

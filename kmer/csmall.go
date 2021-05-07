@@ -37,6 +37,7 @@ func NewCsmall(k int, l int) *csmall {
 func (cs *csmall) Count(b []byte) {
 	// Initialize the kmer manager
 	cs.Km.Init(b)
+	cs.F = false
 
 	// Count the first word
 	cs.C[cs.L][cs.Km.W]++
@@ -53,7 +54,8 @@ func (cs *csmall) NextChannel() {
 }
 
 func (cs *csmall) Finish() {
-	// In small counter, no thing to do
+	// In small counter, just add a channel
+	cs.NextChannel()
 	cs.F = true
 }
 
