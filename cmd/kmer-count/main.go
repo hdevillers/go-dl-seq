@@ -3,6 +3,8 @@ package main
 import (
 	"errors"
 	"flag"
+	"log"
+	"os"
 
 	"github.com/hdevillers/go-dl-seq/kmer"
 	"github.com/hdevillers/go-dl-seq/seqio"
@@ -31,6 +33,8 @@ func main() {
 	g := flag.Bool("g", false, "Group multiple file in a single counter.")
 	flag.Parse()
 
+	logger := log.New(os.Stderr, "DEBUG: ", log.Lmicroseconds)
+
 	if len(input) == 0 {
 		panic("You must provide at one input fasta file.")
 	}
@@ -49,6 +53,7 @@ func main() {
 
 	// Determine the type of counter
 	var kmerCounter kmer.KmerCounter
+	logger.Print("Initializing counter...")
 	if *k <= kmer.MaxKSmall {
 		kmerCounter = kmer.NewCsmall(*k, nc)
 	} else if *k <= kmer.MaxK32Bits {
@@ -57,6 +62,7 @@ func main() {
 		panic(errors.New("K value is too large."))
 	}
 
+	logger.Print("Start reading sequences...")
 	for i := 0; i < len(input); i++ {
 		seqIn := seqio.NewReader(input[i], *f, *d)
 
@@ -74,14 +80,17 @@ func main() {
 	}
 
 	// Finish the overall count if grouped
+	logger.Print("Start sorting and counting...")
 	if *g {
 		kmerCounter.Finish()
 	}
 
+	logger.Print("Start writing out...")
 	// Print out counted value
 	if *a {
 		kmerCounter.PrintAll()
 	} else {
 		kmerCounter.Print()
 	}
+	logger.Print("Finished.")
 }
