@@ -1,2 +1,7 @@
+github.com/golang/snappy v0.0.3/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEWrmP2Q=
+github.com/klauspost/compress v1.12.2 h1:2KCfW3I9M7nSc5wOqXAlW2v2U6v+w6cbjvbfp+OykW8=
+github.com/klauspost/compress v1.12.2/go.mod h1:8dP1Hq4DHOhN9w426knH3Rhby4rFm6D8eO+e+Dq5Gzg=
+github.com/klauspost/pgzip v1.2.5 h1:qnWYvvKqedOF2ulHpMG72XQol4ILEJ8k2wwRl/Km8oE=
+github.com/klauspost/pgzip v1.2.5/go.mod h1:Ch1tH69qFZu15pkjo5kYi6mth2Zzwzt50oCQKQE9RUs=
 gonum.org/v1/hdf5 v0.0.0-20200504100616-496fefe91614 h1:6opGC6JlNr8Efmo4HPh6P7JFrNL/8VH2/prV5esilyk=
 gonum.org/v1/hdf5 v0.0.0-20200504100616-496fefe91614/go.mod h1:BQUWDHIAygjdt1HnUPQ0eWqLN2n5FwJycrpYUVUOx2I=

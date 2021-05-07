@@ -2,12 +2,15 @@ package seqio
 
 import (
 	"bufio"
-	"compress/gzip"
+	//"compress/gzip"
 	"errors"
 	"os"
 
+	gzip "github.com/klauspost/pgzip"
+
 	"github.com/hdevillers/go-dl-seq/seq"
 	"github.com/hdevillers/go-dl-seq/seqio/fasta"
+	"github.com/hdevillers/go-dl-seq/seqio/fastnq"
 	"github.com/hdevillers/go-dl-seq/seqio/fastq"
 	"github.com/hdevillers/go-dl-seq/seqio/seqitf"
 )
@@ -85,6 +88,12 @@ func NewReader(file string, format string, compress ...bool) *Reader {
 			fcloser: fc,
 			sreader: sreader,
 		}
+	case "fastnq", "fnq":
+		sreader = fastnq.NewReader(fs)
+		return &Reader{
+			fcloser: fc,
+			sreader: sreader,
+		}
 	default:
 		return &Reader{
 			err: errors.New("[SEQIO READER]: Unsupported format (" + format + ")."),
@@ -98,7 +107,12 @@ func (r *Reader) Next() bool {
 		return false
 	} else {
 		r.seq, r.err = r.sreader.Read()
-		return true
+		// NOTE: Some parsers return an empty sequence at the end with out error
+		if r.err == nil && r.seq.Length() == 0 {
+			return false
+		} else {
+			return true
+		}
 	}
 }
 
@@ -164,7 +178,7 @@ func NewWriter(file string, format string, compress ...bool) *Writer {
 			fcloser: fc,
 			swriter: swriter,
 		}
-	case "fastq", "fq":
+	case "fastq", "fq", "fastnq", "fnq":
 		swriter = fastq.NewWriter(fw)
 		return &Writer{
 			fcloser: fc,
