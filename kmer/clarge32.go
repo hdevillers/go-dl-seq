@@ -1,10 +1,13 @@
 package kmer
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"math"
+	"os"
 	"sort"
+	"strconv"
 )
 
 type clarge32 struct {
@@ -179,16 +182,29 @@ func (cl *clarge32) PrintAll() {
 	}
 }
 
-func (cl *clarge32) Print() {
+func (cl *clarge32) Print(output string) {
 	if !cl.F {
 		panic(errors.New("[KMER SMALL COUNTER]: Before printing counted values, you must call the Finish method."))
 	}
+
+	f, e := os.Create(output)
+	if e != nil {
+		panic(e)
+	}
+	defer f.Close()
+	b := bufio.NewWriter(f)
+
 	k := int(cl.Km.K)
 	for i := 0; i < cl.I.Len(); i++ {
-		fmt.Printf("%s", Kmer32String(cl.I.W[i], k))
+		b.WriteString(Kmer32String(cl.I.W[i], k))
 		for j := 0; j < cl.Ch; j++ {
-			fmt.Printf("\t%d", cl.C[j][i])
+			b.WriteByte('\t')
+			b.WriteString(strconv.FormatUint(cl.C[j][i], 10))
 		}
-		fmt.Printf("\n")
+		b.WriteByte('\n')
+	}
+	e = b.Flush()
+	if e != nil {
+		panic(e)
 	}
 }

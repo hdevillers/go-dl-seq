@@ -12,6 +12,6 @@ type KmerCounter interface {
 	Count([]byte)
 	Finish()
 	NextChannel()
-	Print()
+	Print(string)
 	PrintAll()
 }

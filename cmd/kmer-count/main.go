@@ -28,6 +28,7 @@ func main() {
 	k := flag.Int("k", 4, "K value.")
 	flag.Var(&input, "i", "Input sequence file(s).")
 	f := flag.String("f", "fasta", "Input sequence format.")
+	o := flag.String("o", "kmer.tab", "Output file name.")
 	d := flag.Bool("d", false, "Decompress the input (gz).")
 	a := flag.Bool("a", false, "Print all Kmers, including zero-count.")
 	g := flag.Bool("g", false, "Group multiple file in a single counter.")
@@ -90,7 +91,7 @@ func main() {
 	if *a {
 		kmerCounter.PrintAll()
 	} else {
-		kmerCounter.Print()
+		kmerCounter.Print(*o)
 	}
 	logger.Print("Finished.")
 }

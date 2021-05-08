@@ -73,7 +73,7 @@ func (cs *csmall) PrintAll() {
 	}
 }
 
-func (cs *csmall) Print() {
+func (cs *csmall) Print(output string) {
 	if !cs.F {
 		panic(errors.New("[KMER SMALL COUNTER]: Before printing counted values, you must call the Finish method."))
 	}
