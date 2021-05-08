@@ -198,6 +198,8 @@ func (w *Writer) Write(s seq.Seq) {
 
 // Close output file
 func (w *Writer) Close() {
+	err := w.swriter.Flush()
+	w.err = err
 	w.fcloser.Close()
 }
 

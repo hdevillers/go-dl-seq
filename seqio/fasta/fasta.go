@@ -167,3 +167,8 @@ func (w *Writer) Write(s seq.Seq) error {
 
 	return err
 }
+
+func (w *Writer) Flush() error {
+	err := w.write.Flush()
+	return err
+}
