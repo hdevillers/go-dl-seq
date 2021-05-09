@@ -1,9 +1,12 @@
 package kmer
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"math"
+	"os"
+	"strconv"
 )
 
 type csmall struct {
@@ -77,6 +80,14 @@ func (cs *csmall) Print(output string) {
 	if !cs.F {
 		panic(errors.New("[KMER SMALL COUNTER]: Before printing counted values, you must call the Finish method."))
 	}
+
+	f, e := os.Create(output)
+	if e != nil {
+		panic(e)
+	}
+	defer f.Close()
+	b := bufio.NewWriter(f)
+
 	k := int(cs.Km.K)
 	for i := 0; i < len(cs.C[0]); i++ {
 		sum := uint64(0)
@@ -84,11 +95,16 @@ func (cs *csmall) Print(output string) {
 			sum += cs.C[j][i]
 		}
 		if sum > 0 {
-			fmt.Printf("%s", Kmer32String(uint32(i), k))
+			b.WriteString(Kmer32String(uint32(i), k))
 			for j := 0; j < cs.L; j++ {
-				fmt.Printf("\t%d", cs.C[j][i])
+				b.WriteByte('\t')
+				b.WriteString(strconv.FormatUint(cs.C[j][i], 10))
 			}
-			fmt.Printf("\n")
+			b.WriteByte('\n')
 		}
+	}
+	e = b.Flush()
+	if e != nil {
+		panic(e)
 	}
 }
