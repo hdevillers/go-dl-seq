@@ -28,6 +28,9 @@ cmd/sequence-shuffle/*
 !cmd/kmer-count/
 cmd/kmer-count/*
 !cmd/kmer-count/main.go
+!cmd/test-script/
+cmd/test-script/*
+!cmd/test-script/main.go
 
 !dataset/
 dataset/*
