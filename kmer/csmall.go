@@ -1,20 +1,22 @@
 package kmer
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"math"
+	"os"
+	"strconv"
 )
 
-// TODO: Slice of id to be similar to large counter
-
 type csmall struct {
-	Km *Kmer32  // Kmer manager
-	C  []uint64 // Kmer counter
-	F  bool     // Finished indicator
+	Km *Kmer32    // Kmer manager
+	C  [][]uint64 // Kmer counter
+	F  bool       // Finished indicator
+	L  int        // Counter indice (multiple channel)
 }
 
-func NewCsmall(k int) *csmall {
+func NewCsmall(k int, l int) *csmall {
 	// Do not instantiate for large k value
 	if k > MaxKSmall {
 		panic(errors.New("[KMER SMALL COUNTER]: Too large K value."))
@@ -24,8 +26,12 @@ func NewCsmall(k int) *csmall {
 	var cs csmall
 	cs.Km = NewKmer32(k)
 	n := math.Pow(4.0, float64(k))
-	cs.C = make([]uint64, int64(n))
+	cs.C = make([][]uint64, l)
+	for i := 0; i < l; i++ {
+		cs.C[i] = make([]uint64, int64(n))
+	}
 	cs.F = false
+	cs.L = 0
 
 	// Return the counter
 	return &cs
@@ -34,19 +40,25 @@ func NewCsmall(k int) *csmall {
 func (cs *csmall) Count(b []byte) {
 	// Initialize the kmer manager
 	cs.Km.Init(b)
+	cs.F = false
 
 	// Count the first word
-	cs.C[cs.Km.W]++
+	cs.C[cs.L][cs.Km.W]++
 
 	// Count the following words
 	for i := int(cs.Km.K); i < len(b); i++ {
 		cs.Km.AddBase(b[i])
-		cs.C[cs.Km.W]++
+		cs.C[cs.L][cs.Km.W]++
 	}
 }
 
+func (cs *csmall) NextChannel() {
+	cs.L++
+}
+
 func (cs *csmall) Finish() {
-	// In small counter, no thing to do
+	// In small counter, just add a channel
+	cs.NextChannel()
 	cs.F = true
 }
 
@@ -54,7 +66,45 @@ func (cs *csmall) PrintAll() {
 	if !cs.F {
 		panic(errors.New("[KMER SMALL COUNTER]: Before printing counted values, you must call the Finish method."))
 	}
-	for i := 0; i < len(cs.C); i++ {
-		fmt.Printf("%s\t%d\n", Kmer32String(uint32(i), int(cs.Km.K)), cs.C[i])
+	k := int(cs.Km.K)
+	for i := 0; i < len(cs.C[0]); i++ {
+		fmt.Printf("%s", Kmer32String(uint32(i), k))
+		for j := 0; j < cs.L; j++ {
+			fmt.Printf("\t%d", cs.C[j][i])
+		}
+		fmt.Printf("\n")
+	}
+}
+
+func (cs *csmall) Print(output string) {
+	if !cs.F {
+		panic(errors.New("[KMER SMALL COUNTER]: Before printing counted values, you must call the Finish method."))
+	}
+
+	f, e := os.Create(output)
+	if e != nil {
+		panic(e)
+	}
+	defer f.Close()
+	b := bufio.NewWriter(f)
+
+	k := int(cs.Km.K)
+	for i := 0; i < len(cs.C[0]); i++ {
+		sum := uint64(0)
+		for j := 0; j < cs.L; j++ {
+			sum += cs.C[j][i]
+		}
+		if sum > 0 {
+			b.WriteString(Kmer32String(uint32(i), k))
+			for j := 0; j < cs.L; j++ {
+				b.WriteByte('\t')
+				b.WriteString(strconv.FormatUint(cs.C[j][i], 10))
+			}
+			b.WriteByte('\n')
+		}
+	}
+	e = b.Flush()
+	if e != nil {
+		panic(e)
 	}
 }

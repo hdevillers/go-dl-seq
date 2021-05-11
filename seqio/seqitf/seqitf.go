@@ -18,6 +18,7 @@ type SeqReader interface {
 // Generic interface to write sequences
 type SeqWriter interface {
 	Write(seq.Seq) error
+	Flush() error
 }
 
 // File handling interfaces

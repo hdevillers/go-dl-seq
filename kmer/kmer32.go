@@ -93,6 +93,10 @@ func (ks *Kmer32Slice) Less(i, j int) bool {
 	return ks.W[i] < ks.W[j]
 }
 
+func (ks *Kmer32Slice) Equal(i, j int) bool {
+	return ks.W[i] == ks.W[j]
+}
+
 func (ks *Kmer32Slice) Swap(i, j int) {
 	ks.W[i], ks.W[j] = ks.W[j], ks.W[i]
 }

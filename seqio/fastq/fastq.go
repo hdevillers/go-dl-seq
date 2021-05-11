@@ -175,8 +175,13 @@ func (w *Writer) Write(s seq.Seq) error {
 		return err
 	}
 
-	err = w.write.Flush()
+	//err = w.write.Flush()
 	w.Count++
 
+	return err
+}
+
+func (w *Writer) Flush() error {
+	err := w.write.Flush()
 	return err
 }
