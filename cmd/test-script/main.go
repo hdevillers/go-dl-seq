@@ -7,131 +7,90 @@ import (
 )
 
 const (
-	MaxStackPerRun int = 250
-	MaxStackGroups int = 100
-	CounterSize    int = 10
+	CounterSize int = 10
 )
 
 type Counter struct {
-	data [][]int
-	temp [][]int
-	coun []int
-	/*sem0 chan int
-	sem1 chan int
-	sem2 chan int
-	sem3 chan int
-	sem4 chan int
-	sem5 chan int*/
+	data   []int
+	from   []int
+	to     []int
+	thread int
+	temp   [][]int
+	coun   []int
 }
 
-var sem0 chan int
-var sem1 chan int
-var sem2 chan int
-var sem3 chan int
-var sem4 chan int
-var sem5 chan int
-var sem6 chan int
-
-func NewCounter() *Counter {
+func NewCounter(t int) *Counter {
 	var c Counter
-	c.data = make([][]int, MaxStackGroups)
-	c.temp = make([][]int, MaxStackGroups)
+	c.thread = t
+	c.temp = make([][]int, t)
+	c.from = make([]int, t)
+	c.to = make([]int, t)
 	c.coun = make([]int, CounterSize)
-	/*
-		c.sem0 = make(chan int)
-		c.sem1 = make(chan int, t) // Limited thread bottle neck
-		c.sem2 = make(chan int)
-		c.sem3 = make(chan int, 1) // Merging bottle neck
-		c.sem4 = make(chan int)    // End of lauching channel
-		c.sem5 = make(chan int)    // Final channel
-	*/
 	return &c
 }
 
-func initChanels() {
-	for i := 0; i < MaxStackGroups; i++ {
-		sem0 <- i
-	}
-}
-
-// Data loader (With buffer)
-func (c *Counter) load(n int) {
-	grp := <-sem0
-	c.data[grp] = make([]int, MaxStackPerRun)
-	sid := 0
-	nproc := 0
+// Data loader
+func (c *Counter) load(loaded chan int, n int) {
+	c.data = make([]int, n)
 	for i := 0; i < n; i++ {
-		c.data[grp][sid] = i
-		sid++
-		if sid == MaxStackPerRun {
-			// Launch Enumeration
-			sem1 <- grp
-			go c.enumerate()
-			nproc++
-			grp = <-sem0
-			sid = 0
-			c.data[grp] = make([]int, MaxStackPerRun)
+		c.data[i] = i
+	}
+
+	if c.thread == 1 {
+		c.from[0] = 0
+		c.to[0] = n - 1
+		loaded <- 0
+	} else {
+		div := n / c.thread
+		mod := n % c.thread
+
+		// Set the first coordinates
+		c.from[0] = 0
+		c.to[0] = div + mod - 1
+		loaded <- 0
+
+		// Set the other coordinates
+		for i := 1; i < c.thread; i++ {
+			c.from[i] = i*div + mod
+			c.to[i] = (i+1)*div + mod - 1
+			loaded <- i
 		}
 	}
-	if sid > 0 {
-		sem1 <- grp
-		go c.enumerate()
-		nproc++
-	}
-	sem4 <- nproc
-	c.finish()
 }
 
 // First step of the treatment (ex., init temp. counters)
-func (c *Counter) enumerate() {
-	grp := <-sem1 // Get the group number
+func (c *Counter) enumerate(loaded chan int, enumerated chan int) {
+	for i := range loaded {
+		// Init the temp count
+		c.temp[i] = make([]int, CounterSize)
 
-	// Init the temp count
-	c.temp[grp] = make([]int, CounterSize)
-
-	// Send grp to counter
-	sem2 <- grp
-	c.count()
+		// Send grp to counter
+		enumerated <- i
+	}
 }
 
-func (c *Counter) count() {
-	grp := <-sem2
-	ind := 0
-	for i := 0; i < MaxStackPerRun; i++ {
-		c.temp[grp][ind] += c.data[grp][i]
-		ind++
-		if ind == CounterSize {
-			ind = 0
+func (c *Counter) count(enumerated chan int, counted chan int) {
+	for i := range enumerated {
+		ind := 0
+		for j := c.from[i]; j <= c.to[i]; j++ {
+			c.temp[i][ind] += c.data[j]
+			ind++
+			if ind == CounterSize {
+				ind = 0
+			}
 		}
+		counted <- i
 	}
-	sem3 <- grp
-	c.merge()
 }
 
-func (c *Counter) merge() {
-	grp := <-sem3 // Buffered at 1 to avoid collision!
-	for i := 0; i < CounterSize; i++ {
-		c.coun[i] += c.temp[grp][i]
+func (c *Counter) merge(counted chan int, merged chan int) {
+	for i := range counted {
+		for j := 0; j < CounterSize; j++ {
+			c.coun[j] += c.temp[i][j]
+		}
+
+		merged <- i
 	}
-	c.temp[grp] = nil
-	c.data[grp] = nil
-	sem0 <- grp // Free the treated group
-	sem5 <- grp // Indicate end of one process
-}
-
-func (c *Counter) finish() {
-	// Wait that all processes are launched
-	nproc := <-sem4
-
-	// Wait for the end of all processes
-	for i := 0; i < nproc; i++ {
-		<-sem5
-	}
-
-	// Close the init. channel
-	close(sem0)
-
-	sem6 <- 1
 }
 
 func (c *Counter) print() {
@@ -145,20 +104,30 @@ func main() {
 	stacks := flag.Int("s", 1000, "Number of stacks.")
 	flag.Parse()
 
-	sem0 = make(chan int)
-	sem1 = make(chan int, *threads) // Limited thread bottle neck
-	sem2 = make(chan int)
-	sem3 = make(chan int, 1) // Merging bottle neck
-	sem4 = make(chan int)    // End of lauching channel
-	sem5 = make(chan int)    // Final channel
-	sem6 = make(chan int)
+	// Init. channeld
+	loaded := make(chan int) // Monitor loaded data
+	enumerated := make(chan int)
+	counted := make(chan int, 1)
+	merged := make(chan int)
 
-	// Define stack manager
-	c := NewCounter()
+	c := NewCounter(*threads)
 
-	initChanels()
-	c.load(*stacks)
+	// Step 1 load data
+	go c.load(loaded, *stacks)
 
-	<-sem6
+	// Step 2 enumerate
+	go c.enumerate(loaded, enumerated)
 
+	// Step 3 count
+	go c.count(enumerated, counted)
+
+	// Step 4 merge
+	go c.merge(counted, merged)
+
+	// Wait all merged counts
+	for i := 0; i < *threads; i++ {
+		<-merged
+	}
+
+	c.print()
 }
