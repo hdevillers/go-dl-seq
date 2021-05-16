@@ -3,131 +3,216 @@ package main
 import (
 	"flag"
 	"fmt"
-	//"github.com/hdevillers/go-dl-seq/kmer"
+	"sort"
+
+	"github.com/hdevillers/go-dl-seq/seqio"
 )
 
-const (
-	CounterSize int = 10
-)
-
-type Counter struct {
-	data   []int
-	from   []int
-	to     []int
-	thread int
-	temp   [][]int
-	coun   []int
+type counter struct {
+	id int
+	n  int
+	K  int
+	B  []uint32 // Converter
+	F  int
+	I  []uint32 // Kmer IDs
+	C  []uint32 // Kmer counts
+	R  int
 }
 
-func NewCounter(t int) *Counter {
-	var c Counter
-	c.thread = t
-	c.temp = make([][]int, t)
-	c.from = make([]int, t)
-	c.to = make([]int, t)
-	c.coun = make([]int, CounterSize)
+type counters struct {
+	counter []*counter
+}
+
+func newCounters(k int) *counters {
+	var c counters
+	c.counter = make([]*counter, k)
+	for i := 0; i < k; i++ {
+		c.counter[i] = newCounter(i, k)
+	}
 	return &c
 }
 
-// Data loader
-func (c *Counter) load(loaded chan int, n int) {
-	c.data = make([]int, n)
-	for i := 0; i < n; i++ {
-		c.data[i] = i
-	}
+func newCounter(id int, k int) *counter {
+	var c counter
+	c.id = id
+	c.K = k
+	c.B = make([]uint32, 256)
+	c.F = (16 - k + 1) * 2
+	c.R = (16 - k) * 2
 
-	if c.thread == 1 {
-		c.from[0] = 0
-		c.to[0] = n - 1
-		loaded <- 0
-	} else {
-		div := n / c.thread
-		mod := n % c.thread
+	// Set base values
+	c.B['C'] = uint32(1)
+	c.B['c'] = uint32(1)
+	c.B['G'] = uint32(2)
+	c.B['g'] = uint32(2)
+	c.B['T'] = uint32(3)
+	c.B['t'] = uint32(3)
 
-		// Set the first coordinates
-		c.from[0] = 0
-		c.to[0] = div + mod - 1
-		loaded <- 0
-
-		// Set the other coordinates
-		for i := 1; i < c.thread; i++ {
-			c.from[i] = i*div + mod
-			c.to[i] = (i+1)*div + mod - 1
-			loaded <- i
-		}
-	}
+	return &c
 }
 
-// First step of the treatment (ex., init temp. counters)
-func (c *Counter) enumerate(loaded chan int, enumerated chan int) {
-	for i := range loaded {
-		// Init the temp count
-		c.temp[i] = make([]int, CounterSize)
+func (c *counter) count(seqChan chan []byte, couChan chan int) {
+	rawList := make([]uint32, 0)
+	nw := 0 // Number of words (in rawList)
+	for seq := range seqChan {
+		l := len(seq)
 
-		// Send grp to counter
-		enumerated <- i
-	}
-}
+		// Extend rawList
+		rawList = append(rawList, make([]uint32, l-c.K+1)...)
 
-func (c *Counter) count(enumerated chan int, counted chan int) {
-	for i := range enumerated {
-		ind := 0
-		for j := c.from[i]; j <= c.to[i]; j++ {
-			c.temp[i][ind] += c.data[j]
-			ind++
-			if ind == CounterSize {
-				ind = 0
-			}
-		}
-		counted <- i
-	}
-}
-
-func (c *Counter) merge(counted chan int, merged chan int) {
-	for i := range counted {
-		for j := 0; j < CounterSize; j++ {
-			c.coun[j] += c.temp[i][j]
+		// Init the first words
+		w := uint32(0) // Runing word
+		for i := 0; i < c.K; i++ {
+			w = (w << 2) | c.B[seq[i]]
 		}
 
-		merged <- i
+		// Add the first word
+		rawList[0] = w
+		nw++
+
+		// Continue to enumerate words
+		for i := c.K; i < l; i++ {
+			w = (w<<c.F)>>c.R | c.B[seq[i]]
+			rawList[nw] = w
+			nw++
+		}
+	}
+
+	c.n = nw
+
+	/*
+		Sort
+	*/
+	sort.Slice(rawList, func(i, j int) bool {
+		return rawList[i] < rawList[i]
+	})
+
+	/*
+		Count
+	*/
+	// Initialize the counter container
+	c.I = make([]uint32, nw)
+	c.C = make([]uint32, nw)
+
+	// Read words
+	i := 0
+	stored := 0
+	for i < nw {
+		c.I[stored] = rawList[i]
+		cou := 1
+		j := i + 1
+		for j < nw && rawList[i] == rawList[j] {
+			cou++
+			j++
+		}
+		c.C[stored] = uint32(cou)
+		i += cou
+		stored++
+	}
+
+	// Number of counted words
+	c.n = stored
+
+	couChan <- c.id
+}
+
+func (c *counters) findPairs(paiChan chan int, max int) {
+	n := 0
+	i := 0
+	for n < max && i < len(c.counter) {
+		if c.counter[i] != nil {
+			paiChan <- i
+			n++
+		}
+		i++
+	}
+	if n < max {
+		// Should not occure!
+		panic("Merging thread issue!")
 	}
 }
 
-func (c *Counter) print() {
-	for i := 0; i < CounterSize; i++ {
-		fmt.Println("Value ", i, " is ", c.coun[i])
-	}
+func (c *counters) merge(paiChan chan int, merChan chan int) {
+	i := <-paiChan
+	j := <-paiChan
+	// Merging counters i and j...
+	fmt.Println("Merging counter ", i, " with counter ", j)
+
+	// Erasing counter j
+	c.counter[j] = nil
+
+	merChan <- i
 }
 
 func main() {
-	threads := flag.Int("t", 4, "Number of threads.")
-	stacks := flag.Int("s", 1000, "Number of stacks.")
+	input := flag.String("i", "", "Input sequence.")
+	k := flag.Int("k", 4, "Kmer values.")
+	t := flag.Int("t", 4, "Number of threads.")
 	flag.Parse()
 
-	// Init. channeld
-	loaded := make(chan int) // Monitor loaded data
-	enumerated := make(chan int)
-	counted := make(chan int, 1)
-	merged := make(chan int)
-
-	c := NewCounter(*threads)
-
-	// Step 1 load data
-	go c.load(loaded, *stacks)
-
-	// Step 2 enumerate
-	go c.enumerate(loaded, enumerated)
-
-	// Step 3 count
-	go c.count(enumerated, counted)
-
-	// Step 4 merge
-	go c.merge(counted, merged)
-
-	// Wait all merged counts
-	for i := 0; i < *threads; i++ {
-		<-merged
+	if *input == "" {
+		panic("No input!")
 	}
 
-	c.print()
+	// Number of threads
+	threads := *t
+
+	// Sequence channel
+	seqChan := make(chan []byte, threads)
+	couChan := make(chan int)
+	paiChan := make(chan int)
+	merChan := make(chan int)
+
+	// Init counters
+	counters := newCounters(*k)
+	for i := 0; i < threads; i++ {
+		go counters.counter[i].count(seqChan, couChan)
+	}
+
+	// SeqIO input sequences
+	seqIn := seqio.NewReader(*input, "fasta", false)
+	defer seqIn.Close()
+
+	for seqIn.Next() {
+		seqIn.CheckPanic()
+		s := seqIn.Seq()
+		seqChan <- s.Sequence
+	}
+	close(seqChan)
+
+	// Wait until all counters are done
+	for i := 0; i < threads; i++ {
+		<-couChan
+	}
+
+	// Merging counters
+	nc := threads // Number of counters
+	nm := nc / 2  // Number of merging process
+	rm := nc % 2  // Number of unmerged counter
+	for nc > 1 {
+		// merging go routine
+		for i := 0; i < nm; i++ {
+			go counters.merge(paiChan, merChan)
+		}
+
+		// through pairs
+		counters.findPairs(paiChan, 2*nm)
+
+		// Wait the merged counters
+		for i := 0; i < nm; i++ {
+			<-merChan
+		}
+
+		// refine numbers
+		nc = nm + rm
+		nm = nc / 2
+		rm = nc % 2
+	}
+
+	for i := 0; i < threads; i++ {
+		if counters.counter[i] != nil {
+			fmt.Println("Count ", counters.counter[i].id, " number of words: ", counters.counter[i].n)
+		}
+	}
+
 }
