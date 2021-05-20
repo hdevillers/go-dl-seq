@@ -14,8 +14,8 @@ type counter struct {
 	K  int
 	B  []uint32 // Converter
 	F  int
-	I  []uint32 // Kmer IDs
-	C  []uint32 // Kmer counts
+	I  []uint32   // Kmer IDs
+	C  [][]uint32 // Kmer counts
 	R  int
 }
 
@@ -39,6 +39,7 @@ func newCounter(id int, k int) *counter {
 	c.B = make([]uint32, 256)
 	c.F = (16 - k + 1) * 2
 	c.R = (16 - k) * 2
+	c.C = make([][]uint32, 1)
 
 	// Set base values
 	c.B['C'] = uint32(1)
@@ -92,7 +93,7 @@ func (c *counter) count(seqChan chan []byte, couChan chan int) {
 	*/
 	// Initialize the counter container
 	c.I = make([]uint32, nw)
-	c.C = make([]uint32, nw)
+	c.C[0] = make([]uint32, nw)
 
 	// Read words
 	i := 0
@@ -105,7 +106,7 @@ func (c *counter) count(seqChan chan []byte, couChan chan int) {
 			cou++
 			j++
 		}
-		c.C[stored] = uint32(cou)
+		c.C[0][stored] = uint32(cou)
 		i += cou
 		stored++
 	}
@@ -136,10 +137,62 @@ func (c *counters) merge(paiChan chan int, merChan chan int) {
 	i := <-paiChan
 	j := <-paiChan
 	// Merging counters i and j...
-	fmt.Println("Merging counter ", i, " with counter ", j)
+
+	// Temp. variable
+	totI := c.counter[i].n
+	totJ := c.counter[j].n
+	tmpN := 0
+	tmpC := make([]uint32, totI+totJ)
+	tmpI := make([]uint32, totI+totJ)
+
+	idI := 0
+	idJ := 0
+	for idI < totI {
+		// Save words from J if lower than current I
+		for idJ < totJ && c.counter[i].I[idI] > c.counter[j].I[idJ] {
+			tmpI[tmpN] = c.counter[j].I[idJ]
+			tmpC[tmpN] = c.counter[j].C[0][idJ]
+			idJ++
+			tmpN++
+		}
+		// Cumul counter if they share the same word
+		if idJ < totJ && c.counter[i].I[idI] == c.counter[j].I[idJ] {
+			tmpI[tmpN] = c.counter[j].I[idJ]
+			tmpC[tmpN] = c.counter[j].C[0][idJ] + c.counter[i].C[0][idI]
+			idI++
+			idJ++
+			tmpN++
+		} else {
+			// Only I has this word
+			tmpI[tmpN] = c.counter[i].I[idI]
+			tmpC[tmpN] = c.counter[i].C[0][idI]
+			tmpN++
+			idI++
+		}
+	}
+	// Finish remaining words in J
+	for idJ < totJ {
+		// No need to check I
+		tmpI[tmpN] = c.counter[j].I[idJ]
+		tmpC[tmpN] = c.counter[j].C[0][idJ]
+		idJ++
+		tmpN++
+	}
 
 	// Erasing counter j
 	c.counter[j] = nil
+
+	// Reset counter i
+	c.counter[i].I = make([]uint32, tmpN)
+	c.counter[i].C[0] = make([]uint32, tmpN)
+	c.counter[i].n = tmpN
+	for n := 0; n < tmpN; n++ {
+		c.counter[i].I[n] = tmpI[n]
+		c.counter[i].C[0][n] = tmpC[n]
+	}
+
+	tmpC = nil
+	tmpI = nil
 
 	merChan <- i
 }
