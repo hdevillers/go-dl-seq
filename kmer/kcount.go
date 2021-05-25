@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"math"
 	"os"
+	"strconv"
 )
 
 type Kcount struct {
@@ -93,6 +94,9 @@ func (c *Kcount) Write(output string) {
 	defer f.Close()
 	b := bufio.NewWriter(f)
 
+	// Init. a Kmer32 manager
+	km := NewKmer32(c.K)
+
 	nc := len(c.Val)
 	for i := 0; i < len(c.Val[0]); i++ {
 		sum := uint32(0)
@@ -100,16 +104,24 @@ func (c *Kcount) Write(output string) {
 			sum += c.Val[j][i]
 		}
 		if sum > 0 {
-
+			// Convert uint32 words into bytes
+			wb := km.Kmer32ToBytes(uint32(i))
+			b.Write(wb)
+			for j := 0; j < nc; j++ {
+				b.WriteByte('\t')
+				b.WriteString(strconv.FormatUint(uint64(c.Val[j][i]), 10))
+			}
+			b.WriteByte('\n')
 		}
 	}
+	b.Flush()
 }
 
 /*
 	Kcounts methods
 */
 // Find all non-nil counters (and throught there ID in a channel)
-func (cs *Kcounts) FindPairs(paiChan chan int, max int) {
+func (cs *Kcounts) FindNonNil(paiChan chan int, max int) {
 	n := 0
 	i := 0
 	for n < max && i < len(cs.Cou) {
@@ -142,4 +154,13 @@ func (cs *Kcounts) Merge(paiChan chan int, merChan chan int) {
 
 	// Throught end of merging
 	merChan <- i
+}
+
+func (cs *Kcounts) Write(output string) {
+	for i := 0; i < len(cs.Cou); i++ {
+		if cs.Cou[i] != nil {
+			cs.Cou[i].Write(output)
+			break
+		}
+	}
 }
