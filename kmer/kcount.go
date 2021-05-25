@@ -117,6 +117,33 @@ func (c *Kcount) Write(output string) {
 	b.Flush()
 }
 
+// Write all counter values including null values
+func (c *Kcount) WriteAll(output string) {
+	// Create the file handle
+	f, e := os.Create(output)
+	if e != nil {
+		panic(e)
+	}
+	defer f.Close()
+	b := bufio.NewWriter(f)
+
+	// Init. a Kmer32 manager
+	km := NewKmer32(c.K)
+
+	nc := len(c.Val)
+	for i := 0; i < len(c.Val[0]); i++ {
+		// Convert uint32 words into bytes
+		wb := km.Kmer32ToBytes(uint32(i))
+		b.Write(wb)
+		for j := 0; j < nc; j++ {
+			b.WriteByte('\t')
+			b.WriteString(strconv.FormatUint(uint64(c.Val[j][i]), 10))
+		}
+		b.WriteByte('\n')
+	}
+	b.Flush()
+}
+
 /*
 	Kcounts methods
 */
@@ -160,6 +187,15 @@ func (cs *Kcounts) Write(output string) {
 	for i := 0; i < len(cs.Cou); i++ {
 		if cs.Cou[i] != nil {
 			cs.Cou[i].Write(output)
+			break
+		}
+	}
+}
+
+func (cs *Kcounts) WriteAll(output string) {
+	for i := 0; i < len(cs.Cou); i++ {
+		if cs.Cou[i] != nil {
+			cs.Cou[i].WriteAll(output)
 			break
 		}
 	}
