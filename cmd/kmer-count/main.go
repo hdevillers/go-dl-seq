@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"log"
 	"os"
@@ -31,7 +30,8 @@ func main() {
 	o := flag.String("o", "kmer.tab", "Output file name.")
 	d := flag.Bool("d", false, "Decompress the input (gz).")
 	a := flag.Bool("a", false, "Print all Kmers, including zero-count.")
-	g := flag.Bool("g", false, "Group multiple file in a single counter.")
+	//g := flag.Bool("g", false, "Group multiple file in a single counter.")
+	threads := flag.Int("threads", 4, "Number of threads.")
 	flag.Parse()
 
 	logger := log.New(os.Stderr, "DEBUG: ", log.Lmicroseconds)
@@ -47,13 +47,13 @@ func main() {
 	}
 
 	// Number of requiered channel
-	nc := len(input)
-	if *g {
-		nc = 1
-	}
+	seqChan := make(chan []byte, *threads)
+	couChan := make(chan int)
+	paiChan := make(chan int)
+	merChan := make(chan int)
 
 	// Determine the type of counter
-	var kmerCounter kmer.KmerCounter
+	/*var kmerCounter kmer.KmerCounter
 	logger.Print("Initializing counter...")
 	if *k <= kmer.MaxKSmall {
 		kmerCounter = kmer.NewCsmall(*k, nc)
@@ -61,37 +61,64 @@ func main() {
 		kmerCounter = kmer.NewClarge32(*k, nc)
 	} else {
 		panic(errors.New("K value is too large."))
-	}
+	}*/
+
+	kmerCounter := kmer.NewKcounts(*threads, *k)
 
 	logger.Print("Start reading sequences...")
 	for i := 0; i < len(input); i++ {
-		seqIn := seqio.NewReader(input[i], *f, *d)
+		// Init. threaded counters
+		for j := 0; j < *threads; j++ {
+			go kmerCounter.Cou[j].Count(seqChan, couChan)
+		}
 
+		// Read input sequences
+		seqIn := seqio.NewReader(input[i], *f, *d)
 		// Count Kmer in all input sequences
 		for seqIn.Next() {
 			seqIn.CheckPanic()
 			s := seqIn.Seq()
-			kmerCounter.Count(s.Sequence)
+			seqChan <- s.Sequence
+			//kmerCounter.Count(s.Sequence)
+		}
+		close(seqChan)
+
+		// Wait until all counters are done
+		for j := 0; j < *threads; j++ {
+			<-couChan
 		}
 
-		// Finish and add a channel if not grouped
-		if !*g {
-			kmerCounter.Finish()
-		}
-	}
+		// Merge multi-threaded counters
+		nc := *threads // Number of counters
+		nm := nc / 2   // Number of merging process
+		rm := nc % 2   // Number of unmerged counter
+		for nc > 1 {
+			// merging go routine
+			for i := 0; i < nm; i++ {
+				go kmerCounter.Merge(paiChan, merChan)
+			}
 
-	// Finish the overall count if grouped
-	logger.Print("Start sorting and counting...")
-	if *g {
-		kmerCounter.Finish()
+			// through pairs
+			kmerCounter.FindNonNil(paiChan, 2*nm)
+
+			// Wait the merged counters
+			for i := 0; i < nm; i++ {
+				<-merChan
+			}
+
+			// refine numbers
+			nc = nm + rm
+			nm = nc / 2
+			rm = nc % 2
+		}
 	}
 
 	logger.Print("Start writing out...")
 	// Print out counted value
 	if *a {
-		kmerCounter.PrintAll()
+		kmerCounter.WriteAll(*o)
 	} else {
-		kmerCounter.Print(*o)
+		kmerCounter.Write(*o)
 	}
 	logger.Print("Finished.")
 }
