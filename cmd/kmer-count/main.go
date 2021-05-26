@@ -53,24 +53,22 @@ func main() {
 	merChan := make(chan int)
 
 	// Determine the type of counter
-	/*var kmerCounter kmer.KmerCounter
+	var kmerCounter kmer.KmerCounter
 	logger.Print("Initializing counter...")
 	if *k <= kmer.MaxKSmall {
-		kmerCounter = kmer.NewCsmall(*k, nc)
+		kmerCounter = kmer.NewKcounts(*threads, *k)
 	} else if *k <= kmer.MaxK32Bits {
-		kmerCounter = kmer.NewClarge32(*k, nc)
+		kmerCounter = kmer.NewKcounts32(*threads, *k)
 	} else {
-		panic(errors.New("K value is too large."))
-	}*/
+		panic("K value is too large.")
+	}
 
-	kmerCounter := kmer.NewKcounts(*threads, *k)
+	//kmerCounter := kmer.NewKcounts32(*threads, *k)
 
 	logger.Print("Start reading sequences...")
 	for i := 0; i < len(input); i++ {
 		// Init. threaded counters
-		for j := 0; j < *threads; j++ {
-			go kmerCounter.Cou[j].Count(seqChan, couChan)
-		}
+		kmerCounter.Count(seqChan, couChan)
 
 		// Read input sequences
 		seqIn := seqio.NewReader(input[i], *f, *d)

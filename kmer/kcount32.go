@@ -167,6 +167,13 @@ func (c *Kcount32) WriteAll(output string) {
 /*
 	Kcounts32 methods
 */
+// Throught counter routines
+func (cs *Kcounts32) Count(seqChan chan []byte, couChan chan int) {
+	for i := 0; i < len(cs.Cou); i++ {
+		go cs.Cou[i].Count(seqChan, couChan)
+	}
+}
+
 // Find all non nil counters and thought their ID in a channel
 func (cs *Kcounts32) FindNonNil(paiChan chan int, max int) {
 	n := 0

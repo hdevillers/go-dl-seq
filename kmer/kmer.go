@@ -9,9 +9,9 @@ const (
 )
 
 type KmerCounter interface {
-	Count([]byte)
-	Finish()
-	NextChannel()
-	Print(string)
-	PrintAll()
+	Count(chan []byte, chan int)
+	Merge(chan int, chan int)
+	FindNonNil(chan int, int)
+	Write(string)
+	WriteAll(string)
 }
