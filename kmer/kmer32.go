@@ -21,3 +21,15 @@ func (km *Kmer32) Kmer32ToBytes(w uint32) []byte {
 	}
 	return wb
 }
+
+func (km *Kmer32) Kmer32RevComp(w uint32) uint32 {
+	rev := uint32(3)
+	out := uint32(0)
+	out = out | ((w & rev) ^ rev)
+	for i := 1; i < km.K; i++ {
+		w = w >> 2
+		out = out << 2
+		out = out | ((w & rev) ^ rev)
+	}
+	return out
+}
