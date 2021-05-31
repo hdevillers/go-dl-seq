@@ -14,9 +14,10 @@ type Kcount struct {
 	Fwd int        // forward operator
 	Bwd int        // Backward operator
 	Val [][]uint32 // counted values
+	Ust bool       // Unstranded kmer count (boolean)
 }
 
-func NewKcount(id, k int) *Kcount {
+func NewKcount(id int, k int, ust bool) *Kcount {
 	var c Kcount
 	c.K = k
 	c.Id = id
@@ -25,6 +26,7 @@ func NewKcount(id, k int) *Kcount {
 	c.Bwd = (16 - k) * 2
 	c.Val = make([][]uint32, 1)
 	c.Val[0] = make([]uint32, int(math.Pow(4.0, float64(k))))
+	c.Ust = ust
 
 	// setup base convertion (merge upper and lower cases)
 	c.Con['C'] = uint32(1)
@@ -41,12 +43,12 @@ type Kcounts struct {
 	Cou []*Kcount // An array of counters
 }
 
-func NewKcounts(th, k int) *Kcounts {
+func NewKcounts(th int, k int, ust bool) *Kcounts {
 	// th is the number of counting threads
 	var cs Kcounts
 	cs.Cou = make([]*Kcount, th)
 	for i := 0; i < th; i++ {
-		cs.Cou[i] = NewKcount(i, k)
+		cs.Cou[i] = NewKcount(i, k, ust)
 	}
 	return &cs
 }
@@ -77,6 +79,28 @@ func (c *Kcount) Count(seqChan chan []byte, couChan chan int) {
 				w = (w<<c.Fwd)>>c.Bwd | c.Con[seq[i]]
 				c.Val[0][w]++
 			}
+		}
+	}
+
+	// Merge identical words if unstranded
+	if c.Ust {
+		nw := uint32(len(c.Val[0]))
+		skip := make([]bool, nw)
+		i := uint32(0)
+		km := NewKmer32(c.K)
+		for i < nw {
+			if skip[i] {
+				continue
+			} else {
+				irc := km.Kmer32RevComp(i)
+				skip[i] = true
+				skip[irc] = true
+				if i < irc {
+					c.Val[0][i] = c.Val[0][i] + c.Val[0][irc]
+					c.Val[0][irc] = 0
+				}
+			}
+			i++
 		}
 	}
 

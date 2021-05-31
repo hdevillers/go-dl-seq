@@ -16,9 +16,10 @@ type Kcount32 struct {
 	Wrd []uint32   // Word ID
 	Val [][]uint32 // Counted values
 	Std int        // Number of distinct words
+	Ust bool       // Unstranded Kmer count
 }
 
-func NewKcount32(id, k int) *Kcount32 {
+func NewKcount32(id int, k int, ust bool) *Kcount32 {
 	var c Kcount32
 	c.K = k
 	c.Id = id
@@ -26,6 +27,7 @@ func NewKcount32(id, k int) *Kcount32 {
 	c.Fwd = (16 - k + 1) * 2
 	c.Bwd = (16 - k) * 2
 	c.Val = make([][]uint32, 1)
+	c.Ust = ust
 
 	// setup base convertion (merge upper and lower cases)
 	c.Con['C'] = uint32(1)
@@ -42,11 +44,11 @@ type Kcounts32 struct {
 	Cou []*Kcount32
 }
 
-func NewKcounts32(th, k int) *Kcounts32 {
+func NewKcounts32(th int, k int, ust bool) *Kcounts32 {
 	var cs Kcounts32
 	cs.Cou = make([]*Kcount32, th)
 	for i := 0; i < th; i++ {
-		cs.Cou[i] = NewKcount32(i, k)
+		cs.Cou[i] = NewKcount32(i, k, ust)
 	}
 	return &cs
 }

@@ -29,7 +29,8 @@ func main() {
 	f := flag.String("f", "fasta", "Input sequence format.")
 	o := flag.String("o", "kmer.tab", "Output file name.")
 	d := flag.Bool("d", false, "Decompress the input (gz).")
-	a := flag.Bool("a", false, "Print all Kmers, including zero-count.")
+	u := flag.Bool("unstranded", false, "Count Kmer in unstranded mode.")
+	a := flag.Bool("all", false, "Print all Kmers, including zero-count.")
 	//g := flag.Bool("g", false, "Group multiple file in a single counter.")
 	threads := flag.Int("threads", 4, "Number of threads.")
 	flag.Parse()
@@ -56,9 +57,9 @@ func main() {
 	var kmerCounter kmer.KmerCounter
 	logger.Print("Initializing counter...")
 	if *k <= kmer.MaxKSmall {
-		kmerCounter = kmer.NewKcounts(*threads, *k)
+		kmerCounter = kmer.NewKcounts(*threads, *k, *u)
 	} else if *k <= kmer.MaxK32Bits {
-		kmerCounter = kmer.NewKcounts32(*threads, *k)
+		kmerCounter = kmer.NewKcounts32(*threads, *k, *u)
 	} else {
 		panic("K value is too large.")
 	}
