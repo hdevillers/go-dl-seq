@@ -30,6 +30,7 @@ func main() {
 	o := flag.String("o", "kmer.tab", "Output file name.")
 	d := flag.Bool("d", false, "Decompress the input (gz).")
 	u := flag.Bool("unstranded", false, "Count Kmer in unstranded mode.")
+	n := flag.String("name", "lib", "Name of the library.")
 	a := flag.Bool("all", false, "Print all Kmers, including zero-count.")
 	threads := flag.Int("threads", 4, "Number of threads.")
 	flag.Parse()
@@ -108,6 +109,9 @@ func main() {
 		nm = nc / 2
 		rm = nc % 2
 	}
+
+	// Set the lib name in the counter
+	kmerCounter.SetName(*n, 0)
 
 	logger.Print("Start writing out...")
 	// Print out counted value

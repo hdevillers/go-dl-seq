@@ -15,6 +15,7 @@ type Kcount32 struct {
 	Bwd int        // Backward word operation
 	Wrd []uint32   // Word ID
 	Val [][]uint32 // Counted values
+	Nam []string   // Lib name
 	Std int        // Number of distinct words
 	Ust bool       // Unstranded Kmer count
 }
@@ -27,6 +28,7 @@ func NewKcount32(id int, k int, ust bool) *Kcount32 {
 	c.Fwd = (16 - k + 1) * 2
 	c.Bwd = (16 - k) * 2
 	c.Val = make([][]uint32, 1)
+	c.Nam = make([]string, 1)
 	c.Ust = ust
 
 	// setup base convertion (merge upper and lower cases)
@@ -56,6 +58,14 @@ func NewKcounts32(th int, k int, ust bool) *Kcounts32 {
 /*
 	Kcount32 methods
 */
+// Set counter name
+func (c *Kcount32) SetName(s string, i int) {
+	if i >= len(c.Nam) {
+		panic("Name index to large, you must extend the counter first.")
+	}
+	c.Nam[i] = s
+}
+
 // Count words from sequences of bytes provided by a channel
 func (c *Kcount32) Count(seqChan chan []byte, couChan chan int) {
 	// First, enumarate all words in a list
@@ -139,6 +149,14 @@ func (c *Kcount32) Write(output string) {
 	defer f.Close()
 	b := bufio.NewWriter(f)
 
+	// Write out the header
+	b.WriteString("Kmer")
+	for i := 0; i < len(c.Nam); i++ {
+		b.WriteByte('\t')
+		b.WriteString(c.Nam[i])
+	}
+	b.WriteByte('\n')
+
 	// Init. a Kmer32 manager
 	km := NewKmer32(c.K)
 
@@ -164,6 +182,14 @@ func (c *Kcount32) WriteAll(output string) {
 	defer f.Close()
 	b := bufio.NewWriter(f)
 
+	// Write out the header
+	b.WriteString("Kmer")
+	for i := 0; i < len(c.Nam); i++ {
+		b.WriteByte('\t')
+		b.WriteString(c.Nam[i])
+	}
+	b.WriteByte('\n')
+
 	// Init. a Kmer32 manager
 	km := NewKmer32(c.K)
 
@@ -183,6 +209,14 @@ func (c *Kcount32) WriteAll(output string) {
 /*
 	Kcounts32 methods
 */
+func (cs *Kcounts32) SetName(s string, i int) {
+	for j := 0; j < len(cs.Cou); j++ {
+		if cs.Cou[j] != nil {
+			cs.Cou[j].SetName(s, i)
+		}
+	}
+}
+
 // Throught counter routines
 func (cs *Kcounts32) Count(seqChan chan []byte, couChan chan int) {
 	for i := 0; i < len(cs.Cou); i++ {

@@ -14,6 +14,7 @@ type Kcount struct {
 	Fwd int        // forward operator
 	Bwd int        // Backward operator
 	Val [][]uint32 // counted values
+	Nam []string   // Name of the libs
 	Ust bool       // Unstranded kmer count (boolean)
 }
 
@@ -26,6 +27,7 @@ func NewKcount(id int, k int, ust bool) *Kcount {
 	c.Bwd = (16 - k) * 2
 	c.Val = make([][]uint32, 1)
 	c.Val[0] = make([]uint32, int(math.Pow(4.0, float64(k))))
+	c.Nam = make([]string, 1)
 	c.Ust = ust
 
 	// setup base convertion (merge upper and lower cases)
@@ -56,6 +58,29 @@ func NewKcounts(th int, k int, ust bool) *Kcounts {
 /*
 	Kcount methods
 */
+// Set the name of a counter
+func (c *Kcount) SetName(s string, i int) {
+	if i >= len(c.Nam) {
+		panic("Name index to large, you must extend the counter first.")
+	}
+	c.Nam[i] = s
+}
+
+// Extend counter
+func (c *Kcount) Extend(n int) {
+	i := len(c.Val)
+
+	// Extend the value container
+	c.Val = append(c.Val, make([][]uint32, n)...)
+	for i < len(c.Val) {
+		c.Val[i] = make([]uint32, int(math.Pow(4.0, float64(c.K))))
+		i++
+	}
+
+	// Extend the name container
+	c.Nam = append(c.Nam, make([]string, n)...)
+}
+
 // Count words from sequences of bytes provided by a channel
 func (c *Kcount) Count(seqChan chan []byte, couChan chan int) {
 	// Read channel
@@ -119,6 +144,14 @@ func (c *Kcount) Write(output string) {
 	defer f.Close()
 	b := bufio.NewWriter(f)
 
+	// Write out the header
+	b.WriteString("Kmer")
+	for i := 0; i < len(c.Nam); i++ {
+		b.WriteByte('\t')
+		b.WriteString(c.Nam[i])
+	}
+	b.WriteByte('\n')
+
 	// Init. a Kmer32 manager
 	km := NewKmer32(c.K)
 
@@ -151,6 +184,14 @@ func (c *Kcount) WriteAll(output string) {
 	}
 	defer f.Close()
 	b := bufio.NewWriter(f)
+
+	// Write out the header
+	b.WriteString("Kmer")
+	for i := 0; i < len(c.Nam); i++ {
+		b.WriteByte('\t')
+		b.WriteString(c.Nam[i])
+	}
+	b.WriteByte('\n')
 
 	// Init. a Kmer32 manager
 	km := NewKmer32(c.K)
@@ -213,6 +254,14 @@ func (cs *Kcounts) Merge(paiChan chan int, merChan chan int) {
 
 	// Throught end of merging
 	merChan <- i
+}
+
+func (cs *Kcounts) SetName(s string, i int) {
+	for j := 0; j < len(cs.Cou); j++ {
+		if cs.Cou[j] != nil {
+			cs.Cou[j].SetName(s, i)
+		}
+	}
 }
 
 func (cs *Kcounts) Write(output string) {

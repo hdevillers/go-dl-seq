@@ -12,6 +12,7 @@ type KmerCounter interface {
 	Count(chan []byte, chan int)
 	Merge(chan int, chan int)
 	FindNonNil(chan int, int)
+	SetName(string, int)
 	Write(string)
 	WriteAll(string)
 }
