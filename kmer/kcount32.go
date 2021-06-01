@@ -87,6 +87,20 @@ func (c *Kcount32) Count(seqChan chan []byte, couChan chan int) {
 		}
 	}
 
+	// If unstranded count, replace words before sorting
+	if c.Ust {
+		km := NewKmer32(c.K)
+		i := 0
+		for i < nw {
+			irc := km.Kmer32RevComp(rawList[i])
+			if irc < rawList[i] {
+				// Replace the word
+				rawList[i] = irc
+			}
+			i++
+		}
+	}
+
 	// Sort the rawList
 	sort.Slice(rawList, func(i, j int) bool {
 		return rawList[i] < rawList[j]
