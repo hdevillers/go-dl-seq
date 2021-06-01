@@ -31,7 +31,6 @@ func main() {
 	d := flag.Bool("d", false, "Decompress the input (gz).")
 	u := flag.Bool("unstranded", false, "Count Kmer in unstranded mode.")
 	a := flag.Bool("all", false, "Print all Kmers, including zero-count.")
-	//g := flag.Bool("g", false, "Group multiple file in a single counter.")
 	threads := flag.Int("threads", 4, "Number of threads.")
 	flag.Parse()
 
@@ -64,13 +63,12 @@ func main() {
 		panic("K value is too large.")
 	}
 
-	//kmerCounter := kmer.NewKcounts32(*threads, *k)
-
 	logger.Print("Start reading sequences...")
-	for i := 0; i < len(input); i++ {
-		// Init. threaded counters
-		kmerCounter.Count(seqChan, couChan)
+	// Launch couting routines
+	kmerCounter.Count(seqChan, couChan)
 
+	// For each input files
+	for i := 0; i < len(input); i++ {
 		// Read input sequences
 		seqIn := seqio.NewReader(input[i], *f, *d)
 		// Count Kmer in all input sequences
@@ -78,38 +76,37 @@ func main() {
 			seqIn.CheckPanic()
 			s := seqIn.Seq()
 			seqChan <- s.Sequence
-			//kmerCounter.Count(s.Sequence)
 		}
-		close(seqChan)
+	}
+	close(seqChan)
 
-		// Wait until all counters are done
-		for j := 0; j < *threads; j++ {
-			<-couChan
+	// Wait until all counters are done
+	for j := 0; j < *threads; j++ {
+		<-couChan
+	}
+
+	// Merge multi-threaded counters
+	nc := *threads // Number of counters
+	nm := nc / 2   // Number of merging process
+	rm := nc % 2   // Number of unmerged counter
+	for nc > 1 {
+		// merging go routine
+		for i := 0; i < nm; i++ {
+			go kmerCounter.Merge(paiChan, merChan)
 		}
 
-		// Merge multi-threaded counters
-		nc := *threads // Number of counters
-		nm := nc / 2   // Number of merging process
-		rm := nc % 2   // Number of unmerged counter
-		for nc > 1 {
-			// merging go routine
-			for i := 0; i < nm; i++ {
-				go kmerCounter.Merge(paiChan, merChan)
-			}
+		// through pairs
+		kmerCounter.FindNonNil(paiChan, 2*nm)
 
-			// through pairs
-			kmerCounter.FindNonNil(paiChan, 2*nm)
-
-			// Wait the merged counters
-			for i := 0; i < nm; i++ {
-				<-merChan
-			}
-
-			// refine numbers
-			nc = nm + rm
-			nm = nc / 2
-			rm = nc % 2
+		// Wait the merged counters
+		for i := 0; i < nm; i++ {
+			<-merChan
 		}
+
+		// refine numbers
+		nc = nm + rm
+		nm = nc / 2
+		rm = nc % 2
 	}
 
 	logger.Print("Start writing out...")
