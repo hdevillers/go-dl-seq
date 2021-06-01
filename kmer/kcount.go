@@ -90,6 +90,7 @@ func (c *Kcount) Count(seqChan chan []byte, couChan chan int) {
 		km := NewKmer32(c.K)
 		for i < nw {
 			if skip[i] {
+				i++
 				continue
 			} else {
 				irc := km.Kmer32RevComp(i)
@@ -99,8 +100,8 @@ func (c *Kcount) Count(seqChan chan []byte, couChan chan int) {
 					c.Val[0][i] = c.Val[0][i] + c.Val[0][irc]
 					c.Val[0][irc] = 0
 				}
+				i++
 			}
-			i++
 		}
 	}
 
