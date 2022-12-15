@@ -7,8 +7,8 @@ import (
 
 	"github.com/hdevillers/go-dl-seq/dataset"
 	"github.com/hdevillers/go-dl-seq/encoding"
-	"github.com/hdevillers/go-dl-seq/seq"
-	"github.com/hdevillers/go-dl-seq/seqio"
+	"github.com/hdevillers/go-seq/seq"
+	"github.com/hdevillers/go-seq/seqio"
 	"gonum.org/v1/hdf5"
 )
 

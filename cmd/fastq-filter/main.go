@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 
-	"github.com/hdevillers/go-dl-seq/seqio"
+	"github.com/hdevillers/go-seq/seqio"
 )
 
 func main() {
