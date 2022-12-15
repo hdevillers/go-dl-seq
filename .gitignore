@@ -16,24 +16,9 @@ cmd/dataset-onehot/*
 !cmd/fastq-filter/
 cmd/fastq-filter/*
 !cmd/fastq-filter/main.go
-!cmd/fastq-stat/
-cmd/fastq-stat/*
-!cmd/fastq-stat/main.go
-!cmd/sequence-length/
-cmd/sequence-length/*
-!cmd/sequence-length/main.go
-!cmd/sequence-random/
-cmd/sequence-random/*
-!cmd/sequence-random/main.go
-!cmd/sequence-shuffle/
-cmd/sequence-shuffle/*
-!cmd/sequence-shuffle/main.go
-!cmd/kmer-count/
-cmd/kmer-count/*
-!cmd/kmer-count/main.go
-!cmd/test-script/
-cmd/test-script/*
-!cmd/test-script/main.go
+!cmd/dataset-split/
+cmd/dataset-split/*
+!cmd/dataset-split/main.go
 
 !dataset/
 dataset/*
