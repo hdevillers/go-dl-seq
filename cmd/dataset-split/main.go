@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"math"
 	"math/rand"
 	"time"
 
@@ -29,7 +30,8 @@ func main() {
 	}
 
 	// Sum of proportions must be 1.0
-	if *pTrain+*pTest+*pValid != 1.0 {
+	pSum := *pTrain + *pTest + *pValid
+	if math.Abs(pSum-1.0) >= 1e-6 {
 		panic("Sum of the proportion of the training, validation and test sets must be equal to 1.")
 	}
 
