@@ -75,7 +75,7 @@ func main() {
 		seqValid.Write(seqs[nTrain+i])
 	}
 	for i := 0; i < nTest; i++ {
-		seqValid.Write(seqs[nTrain+nValid+i])
+		seqTest.Write(seqs[nTrain+nValid+i])
 	}
 
 	// Print a summary
