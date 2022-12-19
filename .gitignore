@@ -19,6 +19,9 @@ cmd/fastq-filter/*
 !cmd/dataset-split/
 cmd/dataset-split/*
 !cmd/dataset-split/main.go
+!cmd/dataset-check-duplicated/
+cmd/dataset-check-duplicated/*
+!cmd/dataset-check-duplicated/main.go
 
 !dataset/
 dataset/*
